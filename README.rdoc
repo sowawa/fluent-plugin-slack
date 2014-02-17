@@ -1,0 +1,27 @@
+= Fluent event to slack plugin.
+
+= Installation
+
+  $ fluent-gem install fluent-plugin-slack
+
+= Usage
+
+    <match slack>
+      type buffered_slack
+      api_key XXX
+      channel my_room
+      username sowasowa
+      color good
+      icon_emoji :ghost:
+    </match>
+
+    fluent_logger.post('slack', {
+      :username     => 'sowawa',
+      :message  => 'Hello<br>World!',
+      :channel  => 'general',
+    })
+
+= Copyright
+
+Copyright:: Copyright (c) 2014- Keisuke SOGAWA
+License::   Apache License, Version 2.0
