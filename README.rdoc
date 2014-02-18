@@ -15,10 +15,8 @@
       icon_emoji :ghost:
     </match>
 
-    fluent_logger.post('slack', {
-      :username     => 'sowawa',
-      :message  => 'Hello<br>World!',
-      :channel  => 'general',
+    fluent_logger.post('buffered_slack', {
+      :message  => 'Hello<br>World!'
     })
 
 = Copyright
