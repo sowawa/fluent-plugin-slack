@@ -17,8 +17,8 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     username testuser
     color    good
     icon_emoji :ghost:
-    buffer_type memory
     compress gz
+    buffer_path ./test/tmp
     utc
   ]
 
@@ -29,8 +29,22 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
   def test_format
     d = create_driver
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag = 'test'
+    stub(d.instance.slack).say(
+      nil,
+      channel:    '#test',
+      username:   'testuser',
+      icon_emoji: ':ghost:',
+      attachments: [{
+        fallback: d.tag,
+        color:    'good',
+        fields:   [
+          {
+            title: d.tag,
+            value: "[#{Time.at(time)}] sowawa\n"
+          }]}])
     d.emit({message: 'sowawa'}, time)
-    d.expect_format %[#{['test', time, {message: 'sowawa'}].to_json}\n]
+    d.expect_format %[#{['test', time, {message: 'sowawa'}].to_msgpack}]
     d.run
   end
 
@@ -40,17 +54,18 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     d.tag  = 'test'
     stub(d.instance.slack).say(
       nil,
-      channel:    'test',
+      channel:    '#test',
       username:   'testuser',
-      icon_emoji: 'ghost',
-      attachments: {
+      icon_emoji: ':ghost:',
+      attachments: [{
         fallback: d.tag,
         color:    'good',
         fields:   [
-          "[#{Time.at(time)}] sowawa1\n" +
-            "[#{Time.at(time)}] sowawa2\n"
-        ]
-      })
+          {
+            title: d.tag,
+            value: "[#{Time.at(time)}] sowawa1\n" +
+                     "[#{Time.at(time)}] sowawa2\n"
+          }]}])
     d.emit({message: 'sowawa1'}, time)
     d.emit({message: 'sowawa2'}, time)
     d.run
