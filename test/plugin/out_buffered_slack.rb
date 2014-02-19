@@ -13,10 +13,11 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     type buffered_slack
     api_key testtoken
     team    sowasowa
-    channel  test
+    channel  %23test
     username testuser
     color    good
     icon_emoji :ghost:
+    timezone Asia/Tokyo
     compress gz
     buffer_path ./test/tmp
     utc
@@ -32,7 +33,7 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     d.tag = 'test'
     stub(d.instance.slack).say(
       nil,
-      channel:    '#test',
+      channel:    '%23test',
       username:   'testuser',
       icon_emoji: ':ghost:',
       attachments: [{
@@ -41,7 +42,7 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
         fields:   [
           {
             title: d.tag,
-            value: "[#{Time.at(time)}] sowawa\n"
+            value: "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa\n"
           }]}])
     d.emit({message: 'sowawa'}, time)
     d.expect_format %[#{['test', time, {message: 'sowawa'}].to_msgpack}]
@@ -54,7 +55,7 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     d.tag  = 'test'
     stub(d.instance.slack).say(
       nil,
-      channel:    '#test',
+      channel:    '%23test',
       username:   'testuser',
       icon_emoji: ':ghost:',
       attachments: [{
@@ -63,8 +64,8 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
         fields:   [
           {
             title: d.tag,
-            value: "[#{Time.at(time)}] sowawa1\n" +
-                     "[#{Time.at(time)}] sowawa2\n"
+            value: "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa1\n" +
+                     "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa2\n"
           }]}])
     d.emit({message: 'sowawa1'}, time)
     d.emit({message: 'sowawa2'}, time)

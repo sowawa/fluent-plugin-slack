@@ -17,6 +17,8 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "fluentd", ">= 0.10.8"
   gem.add_dependency "slackr",  ">= 0.0.2"
+  gem.add_dependency "activesupport", ">=3.2.16"
+  gem.add_dependency "tzinfo", ">=0.3.38"
 
   gem.add_development_dependency "rake", ">= 0.9.2"
   gem.add_development_dependency "simplecov", ">= 0.5.4"

@@ -9,7 +9,7 @@
     <match slack>
       type buffered_slack
       api_key XXX
-      channel my_room
+      channel %23general # You should use %23 in return for #
       username sowasowa
       color good
       icon_emoji :ghost:
