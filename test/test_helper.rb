@@ -1,20 +1,27 @@
+require 'rubygems'
+require 'bundler'
+
+begin
+  Bundler.setup(:default, :development)
+rescue Bundler::BundlerError => e
+  $stderr.puts e.message
+  $stderr.puts "Run `bundle install` to install missing gems"
+  exit e.status_code
+end
+require 'test/unit'
+
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
-
-require 'rr'
-require 'test/unit'
-class Test::Unit::TestCase
-  include RR::Adapters::TestUnit
-end
-
-if ENV['SIMPLE_COV']
-  require 'simplecov'
-  SimpleCov.start do
-    add_filter 'test/'
-    add_filter 'pkg/'
-    add_filter 'vendor/'
-  end
-end
-
-require 'test/unit'
 require 'fluent/test'
+unless ENV.has_key?('VERBOSE')
+  nulllogger = Object.new
+  nulllogger.instance_eval {|obj|
+    def method_missing(method, *args)
+      # pass
+    end
+  }
+  $log = nulllogger
+end
+
+require 'fluent/plugin/out_buffered_slack'
+require 'rr'
