@@ -1,17 +1,11 @@
-require 'bundler'
-Bundler::GemHelper.install_tasks
+#!/usr/bin/env rake
+require "bundler/gem_tasks"
 
 require 'rake/testtask'
-
 Rake::TestTask.new(:test) do |test|
   test.libs << 'lib' << 'test'
-  test.test_files = FileList['test/plugin/*.rb']
+  test.pattern = 'test/**/test_*.rb'
   test.verbose = true
 end
 
-task :coverage do |t|
-  ENV['SIMPLE_COV'] = '1'
-  Rake::Task["test"].invoke
-end
-
-task :default => [:build]
+task :default => :test
