@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'fluent/plugin/out_buffered_slack'
 require 'time'
 
 class BufferedSlackOutputTest < Test::Unit::TestCase
@@ -31,7 +30,7 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     d = create_driver
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag = 'test'
-    stub(d.instance.slack).say(
+    stub(d.instance.slack).ping(
       nil,
       channel:    '%23test',
       username:   'testuser',
@@ -53,7 +52,7 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     d = create_driver
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    stub(d.instance.slack).say(
+    stub(d.instance.slack).ping(
       nil,
       channel:    '%23test',
       username:   'testuser',
