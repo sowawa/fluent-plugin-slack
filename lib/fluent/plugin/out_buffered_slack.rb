@@ -20,7 +20,7 @@ module Fluent
       messages = {}
       chunk.msgpack_each do |tag, time, record|
         messages[tag] = '' if messages[tag].nil?
-        messages[tag] << "[#{Time.at(time).in_time_zone(@timezone)}] #{record['message']}\n"
+        messages[tag] << "[#{Time.at(time).in_time_zone(@timezone).strftime("%H:%M:%S")}] #{record['message']}\n"
       end
       begin
         payload = {
