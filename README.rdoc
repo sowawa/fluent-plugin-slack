@@ -9,10 +9,12 @@
     <match slack>
       type buffered_slack
       api_key XXX
+      team sowa
       channel %23general # You should use %23 in return for #
       username sowasowa
       color good
       icon_emoji :ghost:
+      buffer_path /path/to/tmp
     </match>
 
     fluent_logger.post('buffered_slack', {
