@@ -25,18 +25,35 @@ module Fluent
         messages[tag] << "[#{Time.at(time).in_time_zone(@timezone).strftime("%H:%M:%S")}] #{record['message']}\n"
       end
       begin
-        payload = {
-          channel:      @channel,
-            username:   @username,
-            icon_emoji: @icon_emoji,
-            attachments: [{
-              fallback: messages.keys.join(','),
-              color:    @color,
-              fields:   messages.map{|k,v| {title: k, value: v} }
-            }]}
-        post_request(
-          payload: payload.to_json
-        )
+
+        # https://api.slack.com/rtm
+        if @rtm
+          params = {
+            :token       => @token,
+            :channel     => @channel,
+            :text        => messages.values,
+            :username    => @username,
+            :icon_emoji  => @icon_emoji,
+            :attachments => [{
+              :color  => @color,
+              :text   => messages.values
+            }].to_json
+          }
+          get_request(params)
+        else
+          payload = {
+            channel:      @channel,
+              username:   @username,
+              icon_emoji: @icon_emoji,
+              attachments: [{
+                fallback: messages.keys.join(','),
+                color:    @color,
+                fields:   messages.map{|k,v| {title: k, value: v} }
+              }]}
+          post_request(
+            payload: payload.to_json
+          )
+        end
       rescue => e
         $log.error("Slack Error: #{e.backtrace[0]} / #{e.message}")
       end
