@@ -2,13 +2,15 @@ module Fluent
   class BufferedSlackOutputError < StandardError; end
   class BufferedSlackOutput < Fluent::TimeSlicedOutput
     Fluent::Plugin.register_output('buffered_slack', self)
-    config_param :api_key,    :string
-    config_param :team,       :string
+    config_param :api_key,    :string, default: nil
+    config_param :token,      :string, default: nil
+    config_param :team,       :string, default: nil
     config_param :channel,    :string
     config_param :username,   :string
     config_param :color,      :string
     config_param :icon_emoji, :string
     config_param :timezone,   :string, default: nil
+    config_param :rtm,        :bool  , default: false
 
     attr_reader :slack
 
@@ -49,13 +51,21 @@ module Fluent
 
     def configure(conf)
       super
-      @channel  = URI.unescape(conf['channel'])
-      @username = conf['username'] || 'fluentd'
-      @color    = conf['color'] || 'good'
-      @icon_emoji = conf['icon_emoji'] || ':question:'
-      @timezone   = conf['timezone'] || 'UTC'
-      @team       = conf['team']
-      @api_key    = conf['api_key']
+      if @rtm
+        @token      = conf['token']
+        @channel    = conf['channel']
+        @username   = conf['username']   || 'fluentd'
+        @color      = conf['color']      || 'good'
+        @icon_emoji = conf['icon_emoji'] || ':question:'
+      else
+        @channel  = URI.unescape(conf['channel'])
+        @username = conf['username'] || 'fluentd'
+        @color    = conf['color'] || 'good'
+        @icon_emoji = conf['icon_emoji'] || ':question:'
+        @timezone   = conf['timezone'] || 'UTC'
+        @team       = conf['team']
+        @api_key    = conf['api_key']
+      end
     end
 
     private
