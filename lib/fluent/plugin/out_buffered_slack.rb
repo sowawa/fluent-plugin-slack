@@ -86,6 +86,22 @@ module Fluent
     end
 
     private
+    def response_check(res)
+      if res.code != "200"
+        raise BufferedSlackOutputError, "Slack.com - #{res.code} - #{res.body}"
+      end
+    end
+
+    def get_request(params)
+      query = URI.encode_www_form([params])
+      uri = URI.parse("https://slack.com/api/chat.postMessage?#{query}")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      res = http.get(uri.request_uri)
+      response_check(res)
+    end
+
     def endpoint
       URI.parse "https://#{@team}.slack.com/services/hooks/incoming-webhook?token=#{@api_key}"
     end
@@ -96,9 +112,7 @@ module Fluent
       http = Net::HTTP.new endpoint.host, endpoint.port
       http.use_ssl = (endpoint.scheme == "https")
       res = http.request(req)
-      if res.code != "200"
-        raise BufferedSlackOutputError, "Slack.com - #{res.code} - #{res.body}"
-      end
+      response_check(res)
     end
   end
 end
