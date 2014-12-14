@@ -22,6 +22,24 @@
       :message  => 'Hello<br>World!'
     })
 
+= Usage(rtm)
+
+    <match slack>
+      type buffered_slack
+      rtm true
+      token xoxb-XXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX
+      channel %23general # You should use %23 in return for #
+      username sowasowa
+      color good
+      icon_emoji :ghost:
+      buffer_path /path/to/tmp
+      flush_interval 60s
+    </match>
+
+    fluent_logger.post('buffered_slack', {
+      :message  => 'Hello<br>World!'
+    })
+
 = Copyright
 
 Copyright:: Copyright (c) 2014- Keisuke SOGAWA
