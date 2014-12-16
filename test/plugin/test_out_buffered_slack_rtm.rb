@@ -8,64 +8,54 @@ class BufferedSlackOutputTest < Test::Unit::TestCase
     Fluent::Test.setup
   end
 
-  CONFIG1 = %[
+  CONFIG2 = %[
     type buffered_slack
-    api_key testtoken
-    team    sowasowa
-    channel  %23test
+    rtm true
+    token testtoken
+    channel C01234567
     username testuser
-    color    good
+    color good
     icon_emoji :ghost:
-    timezone Asia/Tokyo
-    compress gz
     buffer_path ./test/tmp
-    utc
   ]
 
-  def create_driver(conf = CONFIG1)
+  def create_driver(conf = CONFIG2)
     Fluent::Test::BufferedOutputTestDriver.new(Fluent::BufferedSlackOutput).configure(conf)
   end
 
-  def test_format
+  def test_format_rtm
     d = create_driver
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag = 'test'
     stub(d.instance.slack).ping(
       nil,
-      channel:    '%23test',
+      channel:    'C01234567',
       username:   'testuser',
       icon_emoji: ':ghost:',
       attachments: [{
-        fallback: d.tag,
         color:    'good',
-        fields:   [
-          {
-            title: d.tag,
-            value: "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa\n"
-          }]}])
+        text: "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa\n"
+      }]
+    )
     d.emit({message: 'sowawa'}, time)
     d.expect_format %[#{['test', time, {message: 'sowawa'}].to_msgpack}]
     d.run
   end
 
-  def test_write
+  def test_write_rtm
     d = create_driver
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
     stub(d.instance.slack).ping(
       nil,
-      channel:    '%23test',
+      channel:    'C01234567',
       username:   'testuser',
       icon_emoji: ':ghost:',
       attachments: [{
-        fallback: d.tag,
         color:    'good',
-        fields:   [
-          {
-            title: d.tag,
-            value: "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa1\n" +
-                     "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa2\n"
-          }]}])
+        text: "[#{Time.at(time).in_time_zone('Tokyo')}] sowawa\n"
+      }]
+    )
     d.emit({message: 'sowawa1'}, time)
     d.emit({message: 'sowawa2'}, time)
     d.run

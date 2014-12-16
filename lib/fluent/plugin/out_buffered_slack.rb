@@ -2,13 +2,15 @@ module Fluent
   class BufferedSlackOutputError < StandardError; end
   class BufferedSlackOutput < Fluent::TimeSlicedOutput
     Fluent::Plugin.register_output('buffered_slack', self)
-    config_param :api_key,    :string
-    config_param :team,       :string
+    config_param :api_key,    :string, default: nil
+    config_param :token,      :string, default: nil
+    config_param :team,       :string, default: nil
     config_param :channel,    :string
     config_param :username,   :string
     config_param :color,      :string
     config_param :icon_emoji, :string
     config_param :timezone,   :string, default: nil
+    config_param :rtm,        :bool  , default: false
 
     attr_reader :slack
 
@@ -23,18 +25,35 @@ module Fluent
         messages[tag] << "[#{Time.at(time).in_time_zone(@timezone).strftime("%H:%M:%S")}] #{record['message']}\n"
       end
       begin
-        payload = {
-          channel:      @channel,
-            username:   @username,
-            icon_emoji: @icon_emoji,
-            attachments: [{
-              fallback: messages.keys.join(','),
-              color:    @color,
-              fields:   messages.map{|k,v| {title: k, value: v} }
-            }]}
-        post_request(
-          payload: payload.to_json
-        )
+
+        # https://api.slack.com/rtm
+        if @rtm
+          params = {
+            :token       => @token,
+            :channel     => @channel,
+            :text        => messages.values,
+            :username    => @username,
+            :icon_emoji  => @icon_emoji,
+            :attachments => [{
+              :color  => @color,
+              :text   => messages.values
+            }].to_json
+          }
+          get_request(params)
+        else
+          payload = {
+            channel:      @channel,
+              username:   @username,
+              icon_emoji: @icon_emoji,
+              attachments: [{
+                fallback: messages.keys.join(','),
+                color:    @color,
+                fields:   messages.map{|k,v| {title: k, value: v} }
+              }]}
+          post_request(
+            payload: payload.to_json
+          )
+        end
       rescue => e
         $log.error("Slack Error: #{e.backtrace[0]} / #{e.message}")
       end
@@ -49,16 +68,40 @@ module Fluent
 
     def configure(conf)
       super
-      @channel  = URI.unescape(conf['channel'])
-      @username = conf['username'] || 'fluentd'
-      @color    = conf['color'] || 'good'
-      @icon_emoji = conf['icon_emoji'] || ':question:'
-      @timezone   = conf['timezone'] || 'UTC'
-      @team       = conf['team']
-      @api_key    = conf['api_key']
+      if @rtm
+        @token      = conf['token']
+        @channel    = conf['channel']
+        @username   = conf['username']   || 'fluentd'
+        @color      = conf['color']      || 'good'
+        @icon_emoji = conf['icon_emoji'] || ':question:'
+      else
+        @channel  = URI.unescape(conf['channel'])
+        @username = conf['username'] || 'fluentd'
+        @color    = conf['color'] || 'good'
+        @icon_emoji = conf['icon_emoji'] || ':question:'
+        @timezone   = conf['timezone'] || 'UTC'
+        @team       = conf['team']
+        @api_key    = conf['api_key']
+      end
     end
 
     private
+    def response_check(res)
+      if res.code != "200"
+        raise BufferedSlackOutputError, "Slack.com - #{res.code} - #{res.body}"
+      end
+    end
+
+    def get_request(params)
+      query = URI.encode_www_form([params])
+      uri = URI.parse("https://slack.com/api/chat.postMessage?#{query}")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      res = http.get(uri.request_uri)
+      response_check(res)
+    end
+
     def endpoint
       URI.parse "https://#{@team}.slack.com/services/hooks/incoming-webhook?token=#{@api_key}"
     end
@@ -69,9 +112,7 @@ module Fluent
       http = Net::HTTP.new endpoint.host, endpoint.port
       http.use_ssl = (endpoint.scheme == "https")
       res = http.request(req)
-      if res.code != "200"
-        raise BufferedSlackOutputError, "Slack.com - #{res.code} - #{res.body}"
-      end
+      response_check(res)
     end
   end
 end
