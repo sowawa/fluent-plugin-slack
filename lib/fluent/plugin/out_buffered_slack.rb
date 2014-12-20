@@ -68,17 +68,15 @@ module Fluent
 
     def configure(conf)
       super
+
+      @channel    = URI.unescape(conf['channel'])
+      @username   = conf['username']   || 'fluentd'
+      @color      = conf['color']      || 'good'
+      @icon_emoji = conf['icon_emoji'] || ':question:'
+
       if @rtm
         @token      = conf['token']
-        @channel    = URI.unescape(conf['channel'])
-        @username   = conf['username']   || 'fluentd'
-        @color      = conf['color']      || 'good'
-        @icon_emoji = conf['icon_emoji'] || ':question:'
       else
-        @channel  = URI.unescape(conf['channel'])
-        @username = conf['username'] || 'fluentd'
-        @color    = conf['color'] || 'good'
-        @icon_emoji = conf['icon_emoji'] || ':question:'
         @timezone   = conf['timezone'] || 'UTC'
         @team       = conf['team']
         @api_key    = conf['api_key']
