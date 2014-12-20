@@ -70,7 +70,7 @@ module Fluent
       super
       if @rtm
         @token      = conf['token']
-        @channel    = conf['channel']
+        @channel    = URI.unescape(conf['channel'])
         @username   = conf['username']   || 'fluentd'
         @color      = conf['color']      || 'good'
         @icon_emoji = conf['icon_emoji'] || ':question:'
