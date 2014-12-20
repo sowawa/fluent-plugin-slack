@@ -93,7 +93,7 @@ module Fluent
     end
 
     def get_request(params)
-      query = URI.encode_www_form([params])
+      query = URI.encode_www_form(params)
       uri = URI.parse("https://slack.com/api/chat.postMessage?#{query}")
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
