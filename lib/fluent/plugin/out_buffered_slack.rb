@@ -68,17 +68,15 @@ module Fluent
 
     def configure(conf)
       super
+
+      @channel    = URI.unescape(conf['channel'])
+      @username   = conf['username']   || 'fluentd'
+      @color      = conf['color']      || 'good'
+      @icon_emoji = conf['icon_emoji'] || ':question:'
+
       if @rtm
         @token      = conf['token']
-        @channel    = conf['channel']
-        @username   = conf['username']   || 'fluentd'
-        @color      = conf['color']      || 'good'
-        @icon_emoji = conf['icon_emoji'] || ':question:'
       else
-        @channel  = URI.unescape(conf['channel'])
-        @username = conf['username'] || 'fluentd'
-        @color    = conf['color'] || 'good'
-        @icon_emoji = conf['icon_emoji'] || ':question:'
         @timezone   = conf['timezone'] || 'UTC'
         @team       = conf['team']
         @api_key    = conf['api_key']
@@ -93,7 +91,7 @@ module Fluent
     end
 
     def get_request(params)
-      query = URI.encode_www_form([params])
+      query = URI.encode_www_form(params)
       uri = URI.parse("https://slack.com/api/chat.postMessage?#{query}")
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
