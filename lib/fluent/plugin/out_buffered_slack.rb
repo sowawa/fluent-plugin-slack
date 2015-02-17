@@ -32,7 +32,6 @@ module Fluent
           params = {
             :token       => @token,
             :channel     => @channel,
-            :text        => messages.values,
             :username    => @username,
             :icon_emoji  => @icon_emoji,
             :attachments => [{
