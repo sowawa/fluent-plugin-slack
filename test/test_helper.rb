@@ -23,5 +23,11 @@ unless ENV.has_key?('VERBOSE')
   $log = nulllogger
 end
 
-require 'fluent/plugin/out_buffered_slack'
+def with_timezone(tz)
+  oldtz, ENV['TZ'] = ENV['TZ'], tz
+  yield
+ensure
+  ENV['TZ'] = oldtz
+end
+
 require 'rr'
