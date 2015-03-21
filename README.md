@@ -16,7 +16,6 @@ $ fluent-gem install fluent-plugin-slack
   username sowasowa
   color good
   icon_emoji :ghost:
-  buffer_path /path/to/tmp
   flush_interval 60s
 </match>
 ```
@@ -37,7 +36,6 @@ fluent_logger.post('slack', {
   username sowasowa
   color good
   icon_emoji :ghost:
-  buffer_path /path/to/tmp
   flush_interval 60s
 </match>
 ```

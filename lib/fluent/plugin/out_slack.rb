@@ -1,7 +1,7 @@
 require_relative 'slack_client'
 
 module Fluent
-  class SlackOutput < Fluent::TimeSlicedOutput
+  class SlackOutput < Fluent::BufferedOutput
     Fluent::Plugin.register_output('buffered_slack', self) # old version compatiblity
     Fluent::Plugin.register_output('slack', self)
 
@@ -31,7 +31,7 @@ module Fluent
     end
 
     # for test
-    attr_reader :slack, :time_format
+    attr_reader :slack, :time_format, :localtime, :timef
 
     def initialize
       super
@@ -39,7 +39,8 @@ module Fluent
     end
 
     def configure(conf)
-      @time_format ||= conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
+      conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
+      conf['localtime'] ||= true unless conf['utc']
  
       super
 

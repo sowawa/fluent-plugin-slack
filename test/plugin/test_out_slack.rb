@@ -12,7 +12,6 @@ class SlackOutputTest < Test::Unit::TestCase
   CONFIG = %[
     channel channel
     token   XXX-XXX-XXX
-    buffer_path tmp/
   ]
 
   def create_driver(conf = CONFIG)
@@ -63,7 +62,6 @@ class SlackOutputTest < Test::Unit::TestCase
       title        slack notice!
       message      %s
       message_keys message
-      buffer_path tmp/
     ])
     assert_equal '#channel', d.instance.channel
     assert_equal '%Y/%m/%d %H:%M:%S', d.instance.time_format
@@ -87,11 +85,47 @@ class SlackOutputTest < Test::Unit::TestCase
     end
   end
 
+  def test_timezone_configure
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+
+    d = create_driver(CONFIG + %[localtime])
+    with_timezone('Asia/Tokyo') do
+      assert_equal true,       d.instance.localtime
+      assert_equal "07:00:00", d.instance.timef.format(time)
+    end
+
+    d = create_driver(CONFIG + %[utc])
+    with_timezone('Asia/Tokyo') do
+      assert_equal false,      d.instance.localtime
+      assert_equal "22:00:00", d.instance.timef.format(time)
+    end
+
+    d = create_driver(CONFIG + %[timezone Asia/Taipei])
+    with_timezone('Asia/Tokyo') do
+      assert_equal "Asia/Taipei", d.instance.timezone
+      assert_equal "06:00:00",    d.instance.timef.format(time)
+    end
+  end
+
+  def test_time_format_configure
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+
+    d = create_driver(CONFIG + %[time_format %Y/%m/%d %H:%M:%S])
+    with_timezone('Asia/Tokyo') do
+      assert_equal "2014/01/02 07:00:00", d.instance.timef.format(time)
+    end
+  end
+
+  def test_buffer_configure
+    assert_nothing_raised do
+      create_driver(CONFIG + %[buffer_type file\nbuffer_path tmp/])
+    end
+  end
+
   def test_default_incoming_webhook
     d = create_driver(%[
       channel channel
       webhook_url https://hooks.slack.com/services/XXX/XXX/XXX
-      buffer_path tmp/
     ])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
@@ -119,7 +153,6 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(%[
       channel channel
       token   XX-XX-XX
-      buffer_path tmp/
     ])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
@@ -140,7 +173,6 @@ class SlackOutputTest < Test::Unit::TestCase
       d.run
     end
   end
-
 
   def test_title_keys
     d = create_driver(CONFIG + %[title %s\ntitle_keys tag])
