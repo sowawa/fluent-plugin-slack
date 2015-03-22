@@ -26,7 +26,7 @@ fluent_logger.post('slack', {
 })
 ```
 
-# Usage (Slack API)
+# Usage (Web API)
 
 ```apache
 <match slack>
@@ -50,8 +50,8 @@ fluent_logger.post('slack', {
 
 |parameter|description|default|
 |---|---|---|
-|webhook_uri|Incoming Webhook URI (Required for Incoming Webhook mode)||
-|token|Token for Slack API (Required for Slack API mode)||
+|webhook_url|Incoming Webhook URI (Required for Incoming Webhook mode)||
+|token|Token for Web API (Required for Web API mode)||
 |username|name of bot|fluentd|
 |color|color to use|good|
 |icon_emoji|emoji to use as the icon|`:question:`|
