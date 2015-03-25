@@ -23,7 +23,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       client == @api ? {token: ENV['TOKEN']} : {}
     end
 
-    def test_text
+    def test_post_message_text
       [@incoming_webhook, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
@@ -42,7 +42,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       end
     end
 
-    def test_fields
+    def test_post_message_fields
       [@incoming_webhook, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
@@ -67,6 +67,41 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
             }.merge(token(slack))
           )
         end
+      end
+    end
+
+    # Hmm, I need to delete channels to test repeatedly,
+    # but slack does not provide channels.delete API
+    def test_channels_create
+      begin
+        @api.channels_create(
+          {
+            name: '#foo',
+          }.merge(token(@api))
+        )
+      rescue Fluent::SlackClient::NameTakenError
+      end
+    end
+
+    # Hmm, I need to delete channels to test repeatedly,
+    # but slack does not provide channels.delete API
+    def test_auto_channels_create
+      assert_nothing_raised do
+        @api.post_message(
+          {
+            channel:     '#bar',
+            username:    'fluentd',
+            icon_emoji:  ':question:',
+            attachments: [{
+              color:    'good',
+              fallback: "bar\n",
+              text:     "bar\n",
+            }]
+          }.merge(token(@api)),
+          {
+            auto_channels_create: true,
+          }
+        )
       end
     end
   end

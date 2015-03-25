@@ -11,22 +11,23 @@ module Fluent
     config_set_default :include_time_key, true
     config_set_default :include_tag_key, true
    
-    config_param :webhook_url,   :string, default: nil # incoming webhook
-    config_param :token,         :string, default: nil # api token
-    config_param :username,      :string, default: 'fluentd'
-    config_param :color,         :string, default: 'good'
-    config_param :icon_emoji,    :string, default: ':question:'
+    config_param :webhook_url,          :string, default: nil # incoming webhook
+    config_param :token,                :string, default: nil # api token
+    config_param :username,             :string, default: 'fluentd'
+    config_param :color,                :string, default: 'good'
+    config_param :icon_emoji,           :string, default: ':question:'
+    config_param :auto_channels_create, :bool,   default: false
 
-    config_param :channel,       :string
-    config_param :channel_keys,  default: nil do |val|
+    config_param :channel,              :string
+    config_param :channel_keys,         default: nil do |val|
       val.split(',')
     end
-    config_param :title,         :string, default: nil
-    config_param :title_keys,    default: nil do |val|
+    config_param :title,                :string, default: nil
+    config_param :title_keys,           default: nil do |val|
       val.split(',')
     end
-    config_param :message,       :string, default: nil
-    config_param :message_keys,  default: nil do |val|
+    config_param :message,              :string, default: nil
+    config_param :message_keys,         default: nil do |val|
       val.split(',')
     end
 
@@ -84,6 +85,8 @@ module Fluent
           raise Fluent::ConfigError, "string specifier '%s' for `channel` and `channel_keys` specification mismatch"
         end
       end
+
+      @post_message_opts = @auto_channels_create ? {auto_channels_create: true} : {}
     end
 
     def format(tag, time, record)
@@ -93,7 +96,7 @@ module Fluent
     def write(chunk)
       begin
         payloads = build_payloads(chunk)
-        payloads.each {|payload| @slack.post_message(payload) }
+        payloads.each {|payload| @slack.post_message(payload, @post_message_opts) }
       rescue Net::OpenTimeout, Net::ReadTimeout => e
         log.warn "out_slack:", :error => e.to_s, :error_class => e.class.to_s
         raise e # let Fluentd retry

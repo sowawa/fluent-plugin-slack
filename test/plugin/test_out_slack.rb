@@ -129,7 +129,7 @@ class SlackOutputTest < Test::Unit::TestCase
     ])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message(
+    mock(d.instance.slack).post_message({
       channel:     '#channel',
       username:    'fluentd',
       icon_emoji:  ':question:',
@@ -141,7 +141,7 @@ class SlackOutputTest < Test::Unit::TestCase
           value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
         }],
       }]
-    )
+    }, {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -156,7 +156,7 @@ class SlackOutputTest < Test::Unit::TestCase
     ])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message(
+    mock(d.instance.slack).post_message({
       token:       'XX-XX-XX',
       channel:     '#channel',
       username:    'fluentd',
@@ -166,7 +166,7 @@ class SlackOutputTest < Test::Unit::TestCase
         fallback: "sowawa1\nsowawa2\n",
         text:     "sowawa1\nsowawa2\n",
       }]
-    )
+    }, {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -179,7 +179,7 @@ class SlackOutputTest < Test::Unit::TestCase
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
     # attachments field should be changed to show the title
-    mock(d.instance.slack).post_message(
+    mock(d.instance.slack).post_message({
       token:       'XXX-XXX-XXX',
       channel:     '#channel',
       username:    'fluentd',
@@ -194,7 +194,7 @@ class SlackOutputTest < Test::Unit::TestCase
           }
         ]
       }]
-    )
+    }, {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -206,7 +206,7 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[message %s %s\nmessage_keys tag,message])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message(
+    mock(d.instance.slack).post_message({
       token:       'XXX-XXX-XXX',
       channel:     '#channel',
       username:    'fluentd',
@@ -216,7 +216,7 @@ class SlackOutputTest < Test::Unit::TestCase
         fallback: "test sowawa1\ntest sowawa2\n",
         text:     "test sowawa1\ntest sowawa2\n",
       }]
-    )
+    }, {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -228,7 +228,7 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[channel %s\nchannel_keys channel])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message(
+    mock(d.instance.slack).post_message({
       token:       'XXX-XXX-XXX',
       channel:     '#channel1',
       username:    'fluentd',
@@ -238,8 +238,8 @@ class SlackOutputTest < Test::Unit::TestCase
         fallback: "sowawa1\n",
         text:     "sowawa1\n",
       }]
-    )
-    mock(d.instance.slack).post_message(
+    }, {})
+    mock(d.instance.slack).post_message({
       token:       'XXX-XXX-XXX',
       channel:     '#channel2',
       username:    'fluentd',
@@ -249,7 +249,7 @@ class SlackOutputTest < Test::Unit::TestCase
         fallback: "sowawa2\n",
         text:     "sowawa2\n",
       }]
-    )
+    }, {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1', channel: 'channel1'}, time)
       d.emit({message: 'sowawa2', channel: 'channel2'}, time)
