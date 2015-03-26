@@ -61,7 +61,7 @@ fluent_logger.post('slack', {
 |title_keys|keys used to format the title|nil|
 |message|message format. %s will be replaced with value specified by message_keys|%s|
 |message_keys|keys used to format messages|message|
-|auto_channel_create|Create channels if not exist. Available only with Web API mode, and a token for Normal User is required (Bot User can not create channels. See https://api.slack.com/bot-users)|false|
+|auto_channels_create|Create channels if not exist. Available only with Web API mode, and a token for Normal User is required (Bot User can not create channels. See https://api.slack.com/bot-users)|false|
 
 `fluent-plugin-slack` uses `SetTimeKeyMixin` and `SetTagKeyMixin`, so you can also use:
 
