@@ -7,8 +7,8 @@ Gem::Specification.new do |gem|
   gem.homepage    = "https://github.com/sowawa/fluent-plugin-slack"
   gem.summary     = gem.description
   gem.version     = File.read("VERSION").strip
-  gem.authors     = ["Keisuke SOGAWA"]
-  gem.email       = "keisuke.sogawa@gmail.com"
+  gem.authors     = ["Keisuke SOGAWA", "Naotoshi Seo"]
+  gem.email       = ["keisuke.sogawa@gmail.com", "sonots@gmail.com"]
   gem.has_rdoc    = false
   gem.files       = `git ls-files`.split("\n")
   gem.test_files  = `git ls-files -- {test,spec,features}/*`.split("\n")
