@@ -49,19 +49,24 @@ module Fluent
       @channel = '#' + @channel unless @channel.start_with?('#')
 
       if @webhook_url
+        if @webhook_url.empty?
+          raise Fluent::ConfigError.new("`webhook_url` is an empty string")
+        end
         # following default values are for old version compatibility
         @title         ||= '%s'
         @title_keys    ||= %w[tag]
         @message       ||= '[%s] %s'
         @message_keys  ||= %w[time message]
         @slack = Fluent::SlackClient::IncomingWebhook.new(@webhook_url)
-      else
-        unless @token
-          raise Fluent::ConfigError.new("`token` is required to call slack api")
+      elsif @token
+        if @token.empty?
+          raise Fluent::ConfigError.new("`token` is an empty string")
         end
         @message      ||= '%s'
         @message_keys ||= %w[message]
         @slack = Fluent::SlackClient::WebApi.new
+      else
+        raise Fluent::ConfigError.new("Either of `webhook_url` or `token` is required")
       end
       @slack.log = log
       @slack.debug_dev = log.out if log.level <= Fluent::Log::LEVEL_TRACE

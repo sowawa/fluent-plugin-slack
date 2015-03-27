@@ -83,6 +83,21 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_raise(Fluent::ConfigError) do
       create_driver(CONFIG + %[channel %s %s\nchannel_keys foo])
     end
+
+    # Either of webhook_url or token is required
+    assert_raise(Fluent::ConfigError) do
+      create_driver(%[channel foo])
+    end
+
+    # webhook_url is an empty string
+    assert_raise(Fluent::ConfigError) do
+      create_driver(%[channel foo\nwebhook_url])
+    end
+
+    # token is an empty string
+    assert_raise(Fluent::ConfigError) do
+      create_driver(%[channel foo\ntoken])
+    end
   end
 
   def test_timezone_configure
