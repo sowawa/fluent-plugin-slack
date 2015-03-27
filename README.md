@@ -76,6 +76,10 @@ fluent_logger.post('slack', {
 
 `fluent-plugin-slack` is a kind of BufferedOutput plugin, so you can also use [Buffer Parameters](http://docs.fluentd.org/articles/out_exec#buffer-parameters).
 
+## ChangeLog
+
+See [CHANGELOG.md](CHANGELOG.md) for details.
+
 # Contributors
 
 - [@sonots](https://github.com/sonots)
