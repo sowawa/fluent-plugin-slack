@@ -15,7 +15,8 @@ module Fluent
     config_param :token,                :string, default: nil # api token
     config_param :username,             :string, default: 'fluentd'
     config_param :color,                :string, default: 'good'
-    config_param :icon_emoji,           :string, default: ':question:'
+    config_param :icon_emoji,           :string, default: ':ghost:'
+    config_param :icon_url,             :string, default: nil # if not null this param,  emoji that instead of image in your icon.
     config_param :auto_channels_create, :bool,   default: false
 
     config_param :channel,              :string
@@ -124,10 +125,17 @@ module Fluent
 
     def common_payload
       return @common_payload if @common_payload
-      @common_payload = {
-        username:   @username,
-        icon_emoji: @icon_emoji,
-      }
+      if @icon_url == nil
+        @common_payload = {
+          username:     @username,
+          icon_emoji:   @icon_emoji,
+        }
+      else
+        @common_payload = {
+          username:   @username,
+          icon_url:   @icon_url,
+        }
+      end
       @common_payload[:token] = @token if @token
       @common_payload
     end
