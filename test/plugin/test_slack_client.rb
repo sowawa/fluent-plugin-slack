@@ -43,6 +43,34 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       end
     end
 
+    def test_post_message_fields
+      [@incoming_webhook, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(
+            {
+              channel:     '#general',
+              username:    'fluentd',
+              icon_emoji:  ':question:',
+              attachments: [{
+                color:    'good',
+                fallback: 'test1 test2',
+                fields:   [
+                  {
+                    title: 'test1',
+                    value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
+                  },
+                  {
+                    title: 'test2',
+                    value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
+                  },
+                ],
+              }]
+            }.merge(token(slack))
+          )
+        end
+      end
+    end
+
     def test_post_message_icon_url
       [@incoming_webhook, @api].each do |slack|
         assert_nothing_raised do
