@@ -17,6 +17,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       super
       @incoming_webhook = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'])
       @api = Fluent::SlackClient::WebApi.new
+      @icon_url = 'http://www.google.com/s2/favicons?domain=www.google.de'
     end
 
     def token(client)
@@ -42,27 +43,18 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       end
     end
 
-    def test_post_message_fields
+    def test_post_message_icon_url
       [@incoming_webhook, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
               channel:     '#general',
               username:    'fluentd',
-              icon_emoji:  ':question:',
+              icon_url:    @icon_url,
               attachments: [{
                 color:    'good',
-                fallback: 'test1 test2',
-                fields:   [
-                  {
-                    title: 'test1',
-                    value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
-                  },
-                  {
-                    title: 'test2',
-                    value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
-                  },
-                ],
+                fallback: "sowawa1\nsowawa2\n",
+                text:     "sowawa1\nsowawa2\n",
               }]
             }.merge(token(slack))
           )

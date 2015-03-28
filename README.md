@@ -54,7 +54,8 @@ fluent_logger.post('slack', {
 |token|Token for Web API (Required for Web API mode)||
 |username|name of bot|fluentd|
 |color|color to use|good|
-|icon_emoji|emoji to use as the icon|`:question:`|
+|icon_emoji|emoji to use as the icon. either of icon_emoji or icon_url can be specified|`:question:`|
+|icon_url|url to an image to use as the icon. either of icon_emoji or icon_url can be specified|nil|
 |channel|channel to send messages (without first '#')||
 |channel_keys|keys used to format channel. %s will be replaced with value specified by channel_keys if this option is used|nil|
 |title|title format. %s will be replaced with value specified by title_keys. title is created from the first appeared record on each tag|nil|

@@ -7,6 +7,7 @@ class SlackOutputTest < Test::Unit::TestCase
   def setup
     super
     Fluent::Test.setup
+    @icon_url = 'http://www.google.com/s2/favicons?domain=www.google.de'
   end
 
   CONFIG = %[
@@ -135,6 +136,28 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_nothing_raised do
       create_driver(CONFIG + %[buffer_type file\nbuffer_path tmp/])
     end
+  end
+
+  def test_icon_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal ':question:', d.instance.icon_emoji
+    assert_equal nil, d.instance.icon_url
+
+    # either of icon_emoji or icon_url can be specified
+    assert_raise(Fluent::ConfigError) do
+      d = create_driver(CONFIG + %[icon_emoji :ghost:\nicon_url #{@icon_url}])
+    end
+
+    # icon_emoji
+    d = create_driver(CONFIG + %[icon_emoji :ghost:])
+    assert_equal ':ghost:', d.instance.icon_emoji
+    assert_equal nil, d.instance.icon_url
+
+    # icon_url
+    d = create_driver(CONFIG + %[icon_url #{@icon_url}])
+    assert_equal nil, d.instance.icon_emoji
+    assert_equal @icon_url, d.instance.icon_url
   end
 
   def test_default_incoming_webhook
@@ -268,6 +291,48 @@ class SlackOutputTest < Test::Unit::TestCase
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1', channel: 'channel1'}, time)
       d.emit({message: 'sowawa2', channel: 'channel2'}, time)
+      d.run
+    end
+  end
+
+  def test_icon_emoji
+    d = create_driver(CONFIG + %[icon_emoji :ghost:])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message({
+      token:       'XXX-XXX-XXX',
+      channel:     '#channel',
+      username:    'fluentd',
+      icon_emoji:  ':ghost:',
+      attachments: [{
+        color:    'good',
+        fallback: "foo\n",
+        text:     "foo\n",
+      }]
+    }, {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'foo'}, time)
+      d.run
+    end
+  end
+
+  def test_icon_url
+    d = create_driver(CONFIG + %[icon_url #{@icon_url}])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message({
+      token:       'XXX-XXX-XXX',
+      channel:     '#channel',
+      username:    'fluentd',
+      icon_url:    @icon_url,
+      attachments: [{
+        color:    'good',
+        fallback: "foo\n",
+        text:     "foo\n",
+      }]
+    }, {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'foo'}, time)
       d.run
     end
   end
