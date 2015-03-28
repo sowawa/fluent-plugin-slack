@@ -1,3 +1,9 @@
+## 0.5.2 (2015/03/29)
+
+Enhancements:
+
+* Support `icon_url` option (thanks to @jwyjoy)
+
 ## 0.5.1 (2015/03/27)
 
 Enhancements:
