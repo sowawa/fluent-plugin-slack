@@ -160,6 +160,18 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal @icon_url, d.instance.icon_url
   end
 
+  def test_https_proxy_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal nil, d.instance.slack.https_proxy
+    assert_equal Net::HTTP, d.instance.slack.proxy_class
+
+    # https_proxy
+    d = create_driver(CONFIG + %[https_proxy https://proxy.foo.bar:443])
+    assert_equal URI.parse('https://proxy.foo.bar:443'), d.instance.slack.https_proxy
+    assert_not_equal Net::HTTP, d.instance.slack.proxy_class # Net::HTTP.Proxy
+  end
+
   def test_default_incoming_webhook
     d = create_driver(%[
       channel channel

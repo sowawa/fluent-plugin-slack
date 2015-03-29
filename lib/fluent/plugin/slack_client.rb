@@ -1,5 +1,6 @@
 require 'uri'
 require 'net/http'
+require 'net/https'
 require 'logger'
 require_relative 'slack_client/error'
 
@@ -8,13 +9,41 @@ module Fluent
     # The base framework of slack client
     class Base
       attr_accessor :log, :debug_dev
+      attr_reader   :endpoint, :https_proxy
 
-      def initialize
+      # @param [String] endpoint
+      #
+      #     (Incoming Webhook) required
+      #     https://hooks.slack.com/services/XXX/XXX/XXX
+      #
+      #     (Web API) optional and default to be
+      #     https://slack.com/api/
+      #
+      # @param [String] https_proxy (optional)
+      #
+      #     https://proxy.foo.bar:port
+      #
+      def initialize(endpoint = nil, https_proxy = nil)
+        self.endpoint    = endpoint    if endpoint
+        self.https_proxy = https_proxy if https_proxy
         @log = Logger.new('/dev/null')
       end
 
+      def endpoint=(endpoint)
+        @endpoint    = URI.parse(endpoint)
+      end
+
+      def https_proxy=(https_proxy)
+        @https_proxy = URI.parse(https_proxy)
+        @proxy_class = Net::HTTP.Proxy(@https_proxy.host, @https_proxy.port)
+      end
+
+      def proxy_class
+        @proxy_class ||= Net::HTTP
+      end
+
       def post(endpoint, params)
-        http = Net::HTTP.new(endpoint.host, endpoint.port)
+        http = proxy_class.new(endpoint.host, endpoint.port)
         http.use_ssl = (endpoint.scheme == 'https')
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         http.set_debug_output(debug_dev) if debug_dev
@@ -44,12 +73,9 @@ module Fluent
 
     # Slack client for Incoming Webhook
     class IncomingWebhook < Base
-      attr_accessor :endpoint
-
-      # @param [String] endpoint Configure Incoming Webhook endpoint
-      def initialize(endpoint)
-        super()
-        @endpoint = URI.parse(endpoint)
+      def endpoint
+        return @endpoint if @endpoint
+        raise ArgumentError, "Incoming Webhook endpoint is not configured"
       end
 
       def post_message(params = {}, opts = {})
@@ -75,12 +101,16 @@ module Fluent
     class WebApi < Base
       DEFAULT_ENDPOINT = "https://slack.com/api/".freeze
 
+      def endpoint
+        @endpoint ||= URI.parse(DEFAULT_ENDPOINT)
+      end
+
       def post_message_endpoint
-        @post_message_endpoint    ||= URI.join(DEFAULT_ENDPOINT, "chat.postMessage")
+        @post_message_endpoint    ||= URI.join(endpoint, "chat.postMessage")
       end
 
       def channels_create_endpoint
-        @channels_create_endpoint ||= URI.join(DEFAULT_ENDPOINT, "channels.create")
+        @channels_create_endpoint ||= URI.join(endpoint, "channels.create")
       end
 
       # Sends a message to a channel.
