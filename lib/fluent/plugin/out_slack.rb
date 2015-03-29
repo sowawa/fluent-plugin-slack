@@ -18,6 +18,7 @@ module Fluent
     config_param :icon_emoji,           :string, default: nil
     config_param :icon_url,             :string, default: nil
     config_param :auto_channels_create, :bool,   default: false
+    config_param :https_proxy,          :string, default: nil
 
     config_param :channel,              :string
     config_param :channel_keys,         default: nil do |val|
@@ -71,6 +72,10 @@ module Fluent
       end
       @slack.log = log
       @slack.debug_dev = log.out if log.level <= Fluent::Log::LEVEL_TRACE
+
+      if @https_proxy
+        @slack.https_proxy = @https_proxy
+      end
 
       begin
         @message % (['1'] * @message_keys.length)

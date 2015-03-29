@@ -2,6 +2,8 @@ require_relative '../test_helper'
 require 'fluent/plugin/slack_client'
 require 'time'
 require 'dotenv'
+require 'webrick'
+require 'webrick/httpproxy'
 
 # HOW TO RUN
 #
@@ -12,20 +14,60 @@ require 'dotenv'
 #
 Dotenv.load
 if ENV['WEBHOOK_URL'] and ENV['TOKEN']
+
+  class TestProxyServer
+    def initialize
+      @proxy = WEBrick::HTTPProxyServer.new(
+        :BindAddress => '127.0.0.1',
+        :Port => unused_port,
+      )
+    end
+
+    def proxy_url
+      "https://127.0.0.1:#{unused_port}"
+    end
+
+    def start
+      @thread = Thread.new do
+        @proxy.start
+      end
+    end
+
+    def shutdown
+      @proxy.shutdown
+    end
+
+    def unused_port
+      return @unused_port if @unused_port
+      s = TCPServer.open(0)
+      port = s.addr[1]
+      s.close
+      @unused_port = port
+    end
+  end
+
   class SlackClientTest < Test::Unit::TestCase
     def setup
       super
+      @proxy = TestProxyServer.new.tap {|proxy| proxy.start }
       @incoming_webhook = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'])
       @api = Fluent::SlackClient::WebApi.new
+      @incoming_webhook_proxy = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'], @proxy.proxy_url)
+      @api_proxy = Fluent::SlackClient::WebApi.new(nil, @proxy.proxy_url)
+
       @icon_url = 'http://www.google.com/s2/favicons?domain=www.google.de'
     end
 
+    def teardown
+      @proxy.shutdown
+    end
+
     def token(client)
-      client == @api ? {token: ENV['TOKEN']} : {}
+      client.is_a?(Fluent::SlackClient::WebApi) ? {token: ENV['TOKEN']} : {}
     end
 
     def test_post_message_text
-      [@incoming_webhook, @api].each do |slack|
+      [@incoming_webhook, @api, @incoming_webhook_proxy, @api_proxy].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -44,7 +86,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def test_post_message_fields
-      [@incoming_webhook, @api].each do |slack|
+      [@incoming_webhook, @api, @incoming_webhook_proxy, @api_proxy].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -72,7 +114,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def test_post_message_icon_url
-      [@incoming_webhook, @api].each do |slack|
+      [@incoming_webhook, @api, @incoming_webhook_proxy, @api_proxy].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
