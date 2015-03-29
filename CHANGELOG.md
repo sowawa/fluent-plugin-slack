@@ -1,3 +1,9 @@
+## 0.5.3 (2015/03/29)
+
+Enhancements:
+
+* Support `https_proxy` option
+
 ## 0.5.2 (2015/03/29)
 
 Enhancements:
