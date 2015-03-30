@@ -17,6 +17,7 @@ module Fluent
     config_param :color,                :string, default: 'good'
     config_param :icon_emoji,           :string, default: nil
     config_param :icon_url,             :string, default: nil
+    config_param :mrkdwn,               :bool,   default: false
     config_param :auto_channels_create, :bool,   default: false
     config_param :https_proxy,          :string, default: nil
 
@@ -34,7 +35,7 @@ module Fluent
     end
 
     # for test
-    attr_reader :slack, :time_format, :localtime, :timef
+    attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in
 
     def initialize
       super
@@ -102,6 +103,11 @@ module Fluent
       end
       @icon_emoji ||= ':question:' unless @icon_url
 
+      if @mrkdwn
+        # Enable markdown for attachments. See https://api.slack.com/docs/formatting
+        @mrkdwn_in = %w[text fields]
+      end
+
       @post_message_opts = @auto_channels_create ? {auto_channels_create: true} : {}
     end
 
@@ -143,6 +149,13 @@ module Fluent
       @common_payload
     end
 
+    def common_attachment
+      return @common_attachment if @common_attachment
+      @common_attachment = {}
+      @common_attachment[:mrkdwn_in]  = @mrkdwn_in  if @mrkdwn_in
+      @common_attachment
+    end
+
     Field = Struct.new("Field", :title, :value)
 
     def build_title_payloads(chunk)
@@ -161,7 +174,7 @@ module Fluent
             :color    => @color,
             :fallback => fields.values.map(&:title).join(' '), # fallback is the message shown on popup
             :fields   => fields.values.map(&:to_h)
-          }],
+          }.merge(common_attachment)],
         }.merge(common_payload)
       end
     end
@@ -180,7 +193,7 @@ module Fluent
             :color    => @color,
             :fallback => text,
             :text     => text,
-          }],
+          }.merge(common_attachment)],
         }.merge(common_payload)
       end
     end
