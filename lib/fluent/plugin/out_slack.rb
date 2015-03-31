@@ -12,6 +12,7 @@ module Fluent
     config_set_default :include_tag_key, true
    
     config_param :webhook_url,          :string, default: nil # incoming webhook
+    config_param :slackbot_url,         :string, default: nil # slackbot
     config_param :token,                :string, default: nil # api token
     config_param :username,             :string, default: 'fluentd'
     config_param :color,                :string, default: 'good'
@@ -61,6 +62,13 @@ module Fluent
         @message       ||= '[%s] %s'
         @message_keys  ||= %w[time message]
         @slack = Fluent::SlackClient::IncomingWebhook.new(@webhook_url)
+      elsif @slackbot_url
+        if @slackbot_url.empty?
+          raise Fluent::ConfigError.new("`slackbot_url` is an empty string")
+        end
+        @message      ||= '%s'
+        @message_keys ||= %w[message]
+        @slack = Fluent::SlackClient::Slackbot.new(@slackbot_url)
       elsif @token
         if @token.empty?
           raise Fluent::ConfigError.new("`token` is an empty string")
@@ -69,7 +77,7 @@ module Fluent
         @message_keys ||= %w[message]
         @slack = Fluent::SlackClient::WebApi.new
       else
-        raise Fluent::ConfigError.new("Either of `webhook_url` or `token` is required")
+        raise Fluent::ConfigError.new("One of `webhook_url` or `slackbot_url`, or `token` is required")
       end
       @slack.log = log
       @slack.debug_dev = log.out if log.level <= Fluent::Log::LEVEL_TRACE
