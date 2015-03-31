@@ -1,3 +1,9 @@
+## 0.5.4 (2015/03/31)
+
+Enhancements:
+
+* Support `mrkdwn` option
+
 ## 0.5.3 (2015/03/29)
 
 Enhancements:
