@@ -114,7 +114,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def test_post_message_icon_url
-      [@incoming_webhook, @api, @incoming_webhook_proxy, @api_proxy].each do |slack|
+      [@incoming_webhook, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -125,6 +125,49 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
                 color:    'good',
                 fallback: "sowawa1\nsowawa2\n",
                 text:     "sowawa1\nsowawa2\n",
+              }]
+            }.merge(token(slack))
+          )
+        end
+      end
+    end
+
+    def test_post_message_text_mrkdwn
+      [@incoming_webhook, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(
+            {
+              channel:     '#general',
+              username:    'fluentd',
+              attachments: [{
+                color:    'good',
+                fallback: "plain *bold* _italic_ `preformat`\n", # mrkdwn not work
+                text:     "plain *bold* _italic_ `preformat`\n",
+                mrkdwn_in: ['text', 'fields'],
+              }]
+            }.merge(token(slack))
+          )
+        end
+      end
+    end
+
+    def test_post_message_fields_mrkdwn
+      [@incoming_webhook, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(
+            {
+              channel:     '#general',
+              username:    'fluentd',
+              attachments: [{
+                color:    'good',
+                fallback: "plain *bold* _italic_ `preformat`\n", # mrkdwn not work
+                fields:   [
+                  {
+                    title: 'plain *bold* _italic* `preformat`', # mrkdwn not work
+                    value: "plain *bold* _italic* `preformat`\n",
+                  },
+                ],
+                mrkdwn_in: ['text', 'fields'],
               }]
             }.merge(token(slack))
           )

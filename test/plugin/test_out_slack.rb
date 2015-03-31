@@ -172,6 +172,18 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_not_equal Net::HTTP, d.instance.slack.proxy_class # Net::HTTP.Proxy
   end
 
+  def test_mrkwn_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal false, d.instance.mrkdwn
+    assert_equal nil, d.instance.mrkdwn_in
+
+    # mrkdwn
+    d = create_driver(CONFIG + %[mrkdwn true])
+    assert_equal true, d.instance.mrkdwn
+    assert_equal %w[text fields], d.instance.mrkdwn_in
+  end
+
   def test_default_incoming_webhook
     d = create_driver(%[
       channel channel
@@ -242,7 +254,7 @@ class SlackOutputTest < Test::Unit::TestCase
             title: d.tag,
             value: "sowawa1\nsowawa2\n",
           }
-        ]
+        ],
       }]
     }, {})
     with_timezone('Asia/Tokyo') do
@@ -341,6 +353,28 @@ class SlackOutputTest < Test::Unit::TestCase
         color:    'good',
         fallback: "foo\n",
         text:     "foo\n",
+      }]
+    }, {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'foo'}, time)
+      d.run
+    end
+  end
+
+  def test_mrkdwn
+    d = create_driver(CONFIG + %[mrkdwn true])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message({
+      token:       'XXX-XXX-XXX',
+      channel:     '#channel',
+      username:    'fluentd',
+      icon_emoji:  ':question:',
+      attachments: [{
+        color:    'good',
+        fallback: "foo\n",
+        text:     "foo\n",
+        mrkdwn_in: ["text", "fields"],
       }]
     }, {})
     with_timezone('Asia/Tokyo') do
