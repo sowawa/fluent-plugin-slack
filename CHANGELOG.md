@@ -1,3 +1,9 @@
+## 0.5.5 (2015/04/01)
+
+Enhancements:
+
+* Support Slackbot Remote Control API
+
 ## 0.5.4 (2015/03/31)
 
 Enhancements:
