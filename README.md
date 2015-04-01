@@ -26,6 +26,23 @@ fluent_logger.post('slack', {
 })
 ```
 
+# Usage (Slackbot)
+
+```apache
+<match slack>
+  type slack
+  slackbot_url https://xxxx.slack.com/services/hooks/slackbot?token=XXXXXXXXX
+  channel general
+  flush_interval 60s
+</match>
+```
+
+```ruby
+fluent_logger.post('slack', {
+  :message  => 'Hello<br>World!'
+})
+```
+
 # Usage (Web API)
 
 ```apache
@@ -50,8 +67,9 @@ fluent_logger.post('slack', {
 
 |parameter|description|default|
 |---|---|---|
-|webhook_url|Incoming Webhook URI (Required for Incoming Webhook mode)||
-|token|Token for Web API (Required for Web API mode)||
+|webhook_url|Incoming Webhook URI (Required for Incoming Webhook mode). See https://api.slack.com/incoming-webhooks||
+|slackbot_url|Slackbot URI (Required for Slackbot mode). See https://api.slack.com/slackbot. `username`, `color`, `icon_emoji`, `icon_url` are not available for this mode, but Desktop Notification via Highlight Words works with only this mode (Notification via Mentions works from Incoming Webhook and Web API with link_names=1, but Notification via Highlight Words does not)||
+|token|Token for Web API (Required for Web API mode). See https://api.slack.com/web||
 |username|name of bot|fluentd|
 |color|color to use|good|
 |icon_emoji|emoji to use as the icon. either of icon_emoji or icon_url can be specified|`:question:`|
@@ -63,7 +81,7 @@ fluent_logger.post('slack', {
 |title_keys|keys used to format the title|nil|
 |message|message format. %s will be replaced with value specified by message_keys|%s|
 |message_keys|keys used to format messages|message|
-|auto_channels_create|Create channels if not exist. Available only with Web API mode, and a token for Normal User is required (Bot User can not create channels. See https://api.slack.com/bot-users)|false|
+|auto_channels_create|Create channels if not exist. Not available for Incoming Webhook mode (since Incoming Webhook is specific to a channel). A web api `token` for Normal User is required (Bot User can not create channels. See https://api.slack.com/bot-users)|false|
 |https_proxy|https proxy url such as `https://proxy.foo.bar:443`|nil|
 
 `fluent-plugin-slack` uses `SetTimeKeyMixin` and `SetTagKeyMixin`, so you can also use:

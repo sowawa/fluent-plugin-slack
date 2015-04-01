@@ -13,7 +13,7 @@ require 'webrick/httpproxy'
 #     TOKEN=XXXXX
 #
 Dotenv.load
-if ENV['WEBHOOK_URL'] and ENV['TOKEN']
+if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
 
   class TestProxyServer
     def initialize
@@ -49,11 +49,14 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
   class SlackClientTest < Test::Unit::TestCase
     def setup
       super
-      @proxy = TestProxyServer.new.tap {|proxy| proxy.start }
-      @incoming_webhook = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'])
-      @api = Fluent::SlackClient::WebApi.new
-      @incoming_webhook_proxy = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'], @proxy.proxy_url)
-      @api_proxy = Fluent::SlackClient::WebApi.new(nil, @proxy.proxy_url)
+      @incoming       = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'])
+      @slackbot       = Fluent::SlackClient::Slackbot.new(ENV['SLACKBOT_URL'])
+      @api            = Fluent::SlackClient::WebApi.new
+
+      @proxy          = TestProxyServer.new.tap {|proxy| proxy.start }
+      @incoming_proxy = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'], @proxy.proxy_url)
+      @slackbot_proxy = Fluent::SlackClient::Slackbot.new(ENV['SLACKBOT_URL'], @proxy.proxy_url)
+      @api_proxy      = Fluent::SlackClient::WebApi.new(nil, @proxy.proxy_url)
 
       @icon_url = 'http://www.google.com/s2/favicons?domain=www.google.de'
     end
@@ -63,11 +66,11 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def token(client)
-      client.is_a?(Fluent::SlackClient::WebApi) ? {token: ENV['TOKEN']} : {}
+      client.is_a?(Fluent::SlackClient::IncomingWebhook) ? {} : {token: ENV['TOKEN']}
     end
 
     def test_post_message_text
-      [@incoming_webhook, @api, @incoming_webhook_proxy, @api_proxy].each do |slack|
+      [@incoming, @slackbot, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -86,7 +89,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def test_post_message_fields
-      [@incoming_webhook, @api, @incoming_webhook_proxy, @api_proxy].each do |slack|
+      [@incoming, @slackbot, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -113,8 +116,27 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       end
     end
 
+    def test_post_via_proxy
+      [@incoming_proxy, @slackbot_proxy, @api_proxy].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(
+            {
+              channel:     '#general',
+              username:    'fluentd',
+              icon_emoji:  ':question:',
+              attachments: [{
+                color:    'good',
+                fallback: "sowawa1\nsowawa2\n",
+                text:     "sowawa1\nsowawa2\n",
+              }]
+            }.merge(token(slack))
+          )
+        end
+      end
+    end
+
     def test_post_message_icon_url
-      [@incoming_webhook, @api].each do |slack|
+      [@incoming, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -133,7 +155,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def test_post_message_text_mrkdwn
-      [@incoming_webhook, @api].each do |slack|
+      [@incoming, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -152,7 +174,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
     end
 
     def test_post_message_fields_mrkdwn
-      [@incoming_webhook, @api].each do |slack|
+      [@incoming, @api].each do |slack|
         assert_nothing_raised do
           slack.post_message(
             {
@@ -181,7 +203,7 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       begin
         @api.channels_create(
           {
-            name: '#foo',
+            name: '#test_channels_create',
           }.merge(token(@api))
         )
       rescue Fluent::SlackClient::NameTakenError
@@ -194,7 +216,25 @@ if ENV['WEBHOOK_URL'] and ENV['TOKEN']
       assert_nothing_raised do
         @api.post_message(
           {
-            channel:     '#bar',
+            channel:     '#test_auto_api',
+            username:    'fluentd',
+            icon_emoji:  ':question:',
+            attachments: [{
+              color:    'good',
+              fallback: "bar\n",
+              text:     "bar\n",
+            }]
+          }.merge(token(@api)),
+          {
+            auto_channels_create: true,
+          }
+        )
+      end
+
+      assert_nothing_raised do
+        @slackbot.post_message(
+          {
+            channel:     '#test_auto_slackbot',
             username:    'fluentd',
             icon_emoji:  ':question:',
             attachments: [{

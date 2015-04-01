@@ -85,7 +85,7 @@ class SlackOutputTest < Test::Unit::TestCase
       create_driver(CONFIG + %[channel %s %s\nchannel_keys foo])
     end
 
-    # Either of webhook_url or token is required
+    # One of webhook_url or slackbot_url, or token is required
     assert_raise(Fluent::ConfigError) do
       create_driver(%[channel foo])
     end
@@ -93,6 +93,11 @@ class SlackOutputTest < Test::Unit::TestCase
     # webhook_url is an empty string
     assert_raise(Fluent::ConfigError) do
       create_driver(%[channel foo\nwebhook_url])
+    end
+
+    # webhook_url is an empty string
+    assert_raise(Fluent::ConfigError) do
+      create_driver(%[channel foo\nslackbot_url])
     end
 
     # token is an empty string
@@ -189,6 +194,7 @@ class SlackOutputTest < Test::Unit::TestCase
       channel channel
       webhook_url https://hooks.slack.com/services/XXX/XXX/XXX
     ])
+    assert_equal Fluent::SlackClient::IncomingWebhook, d.instance.slack.class
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
     mock(d.instance.slack).post_message({
@@ -211,11 +217,37 @@ class SlackOutputTest < Test::Unit::TestCase
     end
   end
 
+  def test_default_slackbot
+    d = create_driver(%[
+      channel channel
+      slackbot_url https://xxxxx.slack.com/services/hooks/slackbot?token=XXXXXXX
+    ])
+    assert_equal Fluent::SlackClient::Slackbot, d.instance.slack.class
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message({
+      channel:     '#channel',
+      username:    'fluentd',
+      icon_emoji:  ':question:',
+      attachments: [{
+        color:    'good',
+        fallback: "sowawa1\nsowawa2\n",
+        text:     "sowawa1\nsowawa2\n",
+      }]
+    }, {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'sowawa1'}, time)
+      d.emit({message: 'sowawa2'}, time)
+      d.run
+    end
+  end
+
   def test_default_slack_api
     d = create_driver(%[
       channel channel
       token   XX-XX-XX
     ])
+    assert_equal Fluent::SlackClient::WebApi, d.instance.slack.class
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
     mock(d.instance.slack).post_message({

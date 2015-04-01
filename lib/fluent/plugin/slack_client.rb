@@ -16,6 +16,9 @@ module Fluent
       #     (Incoming Webhook) required
       #     https://hooks.slack.com/services/XXX/XXX/XXX
       #
+      #     (Slackbot) required
+      #     https://xxxx.slack.com/services/hooks/slackbot?token=XXXXX
+      #
       #     (Web API) optional and default to be
       #     https://slack.com/api/
       #
@@ -48,7 +51,7 @@ module Fluent
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         http.set_debug_output(debug_dev) if debug_dev
 
-        req = Net::HTTP::Post.new(endpoint.path)
+        req = Net::HTTP::Post.new(endpoint)
         req['Host'] = endpoint.host
         req['Accept'] = 'application/json; charset=utf-8'
         req['User-Agent'] = 'fluent-plugin-slack'
@@ -69,13 +72,38 @@ module Fluent
           raise Error.new(res, params)
         end
       end
+
+      def filter_params(params)
+        params.dup.tap {|p| p[:token] = '[FILTERED]' if p[:token] }
+      end
+
+      # Required to implement to use #with_channels_create
+      # channels.create API is available from only Slack Web API
+      def api
+        raise NotImplementedError
+      end
+
+      def with_channels_create(params = {}, opts = {})
+        retries = 1
+        begin
+          yield
+        rescue ChannelNotFoundError => e
+          if params[:token] and opts[:auto_channels_create]
+            log.warn "out_slack: channel \"#{params[:channel]}\" is not found. try to create the channel, and then retry to post the message."
+            api.channels_create({name: params[:channel], token: params[:token]})
+            retry if (retries -= 1) >= 0 # one time retry
+          else
+            raise e
+          end
+        end
+      end
     end
 
     # Slack client for Incoming Webhook
+    # https://api.slack.com/incoming-webhooks
     class IncomingWebhook < Base
-      def endpoint
-        return @endpoint if @endpoint
-        raise ArgumentError, "Incoming Webhook endpoint is not configured"
+      def initialize(endpoint, https_proxy = nil)
+        super
       end
 
       def post_message(params = {}, opts = {})
@@ -97,9 +125,70 @@ module Fluent
       end
     end
 
+    # Slack client for Slackbot Remote Control
+    # https://api.slack.com/slackbot
+    class Slackbot < Base
+      def initialize(endpoint, https_proxy = nil)
+        super
+      end
+
+      def api
+        @api ||= WebApi.new(nil, https_proxy)
+      end
+
+      def post_message(params = {}, opts = {})
+        raise ArgumentError, "channel parameter is required" unless params[:channel]
+        with_channels_create(params, opts) do
+          log.info { "out_slack: post_message #{filter_params(params)}" }
+          post(slackbot_endpoint(params), params)
+        end
+      end
+
+      private
+
+      def slackbot_endpoint(params)
+        endpoint.dup.tap {|e| e.query += "&channel=#{URI.encode(params[:channel])}" }
+      end
+
+      def encode_body(params = {})
+        raise ArgumentError, 'params[:attachments] is required' unless params[:attachments]
+        attachment = Array(params[:attachments]).first # let me see only the first for now
+        # {
+        #   attachments: [{
+        #     text: "HERE",
+        #   }]
+        # }
+        text = attachment[:text]
+        # {
+        #   attachments: [{
+        #     fields: [{
+        #       title: "title",
+        #       value: "HERE",
+        #     }]
+        #   }]
+        # }
+        if text.nil? and attachment[:fields]
+          text = Array(attachment[:fields]).first[:value] # let me see only the first for now
+        end
+        text
+      end
+
+      def response_check(res, params)
+        if res.body == 'channel_not_found'
+          raise ChannelNotFoundError.new(res, params)
+        elsif res.body != 'ok'
+          raise Error.new(res, params)
+        end
+      end
+    end
+
     # Slack client for Web API
     class WebApi < Base
       DEFAULT_ENDPOINT = "https://slack.com/api/".freeze
+
+      def api
+        self
+      end
 
       def endpoint
         @endpoint ||= URI.parse(DEFAULT_ENDPOINT)
@@ -119,18 +208,9 @@ module Fluent
       # @see https://github.com/slackhq/slack-api-docs/blob/master/methods/chat.postMessage.md
       # @see https://github.com/slackhq/slack-api-docs/blob/master/methods/chat.postMessage.json
       def post_message(params = {}, opts = {})
-        retries = 1
-        begin
-          log.info { "out_slack: post_message #{params.dup.tap {|p| p[:token] = '[FILTERED]' if p[:token] }}" }
+        with_channels_create(params, opts) do
+          log.info { "out_slack: post_message #{filter_params(params)}" }
           post(post_message_endpoint, params)
-        rescue ChannelNotFoundError => e
-          if opts[:auto_channels_create]
-            log.warn "out_slack: channel \"#{params[:channel]}\" is not found. try to create the channel, and then retry to post the message."
-            channels_create({name: params[:channel], token: params[:token]})
-            retry if (retries -= 1) >= 0 # one time retry
-          else
-            raise e
-          end
         end
       end
 
@@ -143,7 +223,7 @@ module Fluent
       # @see https://github.com/slackhq/slack-api-docs/blob/master/methods/channels.create.md
       # @see https://github.com/slackhq/slack-api-docs/blob/master/methods/channels.create.json
       def channels_create(params = {}, opts = {})
-        log.info { "out_slack: channels_create #{params.dup.tap {|p| p[:token] = '[FILTERED]' if p[:token] }}" }
+        log.info { "out_slack: channels_create #{filter_params(params)}" }
         post(channels_create_endpoint, params)
       end
 
