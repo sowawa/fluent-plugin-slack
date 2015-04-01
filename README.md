@@ -14,7 +14,6 @@ $ fluent-gem install fluent-plugin-slack
   webhook_url https://hooks.slack.com/services/XXX/XXX/XXX
   channel general
   username sowasowa
-  color good
   icon_emoji :ghost:
   flush_interval 60s
 </match>
@@ -51,7 +50,6 @@ fluent_logger.post('slack', {
   token xoxb-XXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX
   channel general
   username sowasowa
-  color good
   icon_emoji :ghost:
   flush_interval 60s
 </match>
@@ -68,16 +66,18 @@ fluent_logger.post('slack', {
 |parameter|description|default|
 |---|---|---|
 |webhook_url|Incoming Webhook URI (Required for Incoming Webhook mode). See https://api.slack.com/incoming-webhooks||
-|slackbot_url|Slackbot URI (Required for Slackbot mode). See https://api.slack.com/slackbot. `username`, `color`, `icon_emoji`, `icon_url` are not available for this mode, but Desktop Notification via Highlight Words works with only this mode (Notification via Mentions works from Incoming Webhook and Web API with link_names=1, but Notification via Highlight Words does not)||
+|slackbot_url|Slackbot URI (Required for Slackbot mode). See https://api.slack.com/slackbot. NOTE: most of optional parameters such as `username`, `color`, `icon_emoji`, `icon_url`, and `title` are not available for this mode, but Desktop Notification via Highlight Words works with only this mode||
 |token|Token for Web API (Required for Web API mode). See https://api.slack.com/web||
-|username|name of bot|fluentd|
-|color|color to use|good|
-|icon_emoji|emoji to use as the icon. either of icon_emoji or icon_url can be specified|`:question:`|
-|icon_url|url to an image to use as the icon. either of icon_emoji or icon_url can be specified|nil|
-|mrkdwn|enable formatting. see https://api.slack.com/docs/formatting|false|
+|username|name of bot|nil|
+|color|color to use such as `good` or `bad`. See `Color` section of https://api.slack.com/docs/attachments. NOTE: This parameter must **not** be specified to receive Desktop Notification via Mentions in cases of Incoming Webhook and Slack Web API|nil|
+|icon_emoji|emoji to use as the icon. either of `icon_emoji` or `icon_url` can be specified|nil|
+|icon_url|url to an image to use as the icon. either of `icon_emoji` or `icon_url` can be specified|nil|
+|mrkdwn|enable formatting. see https://api.slack.com/docs/formatting|true|
+|link_names|find and link channel names and usernames. NOTE: This parameter must be `true` to receive Desktop Notification via Mentions in cases of Incoming Webhook and Slack Web API|true|
+|parse|change how messages are treated. `none` or `full` can be specified. See `Parsing mode` section of https://api.slack.com/docs/formatting|nil|
 |channel|channel to send messages (without first '#')||
 |channel_keys|keys used to format channel. %s will be replaced with value specified by channel_keys if this option is used|nil|
-|title|title format. %s will be replaced with value specified by title_keys. title is created from the first appeared record on each tag|nil|
+|title|title format. %s will be replaced with value specified by title_keys. title is created from the first appeared record on each tag. NOTE: This parameter must **not** be specified to receive Desktop Notification via Mentions in cases of Incoming Webhook and Slack Web API|nil|
 |title_keys|keys used to format the title|nil|
 |message|message format. %s will be replaced with value specified by message_keys|%s|
 |message_keys|keys used to format messages|message|
@@ -96,6 +96,17 @@ fluent_logger.post('slack', {
 |tag_key|key name for tag used in xxx_keys|tag|
 
 `fluent-plugin-slack` is a kind of BufferedOutput plugin, so you can also use [Buffer Parameters](http://docs.fluentd.org/articles/out_exec#buffer-parameters).
+
+## FAQ
+
+### Desktop Notification seems not working?
+
+Currently, slack.com has following limitations:
+
+1. Desktop Notification via both Highlight Words and Mentions works only with Slackbot Remote Control
+2. Desktop Notification via Mentions works for the `text` field if `link_names` parameter is specified in cases of Incoming Webhook and Slack Web API, that is,
+  * Desktop Notification does not work for the `attachments` filed (used in `color` and `title`)
+  * Desktop Notification via Highlight Words does not work for Incoming Webhook and Slack Web API anyway
 
 ## ChangeLog
 
