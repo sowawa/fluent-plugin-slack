@@ -1,3 +1,19 @@
+## 0.6.0 (2015/04/02)
+
+This version has impcompatibility with previous versions in default option values
+
+Enhancements:
+
+* Support `link_names` and `parse` option. `link_names` option is `true` as default
+
+Changes:
+
+* the default payload of Incoming Webhook was changed
+* `color` is `nil` as default
+* `icon_emoji` is `nil` as default
+* `username` is `nil` as default
+* `mrkdwn` is `true` as default
+
 ## 0.5.5 (2015/04/01)
 
 Enhancements:
