@@ -38,7 +38,7 @@ module Fluent
     end
 
     # for test
-    attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in
+    attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in, :post_message_opts
 
     def initialize
       super
@@ -117,7 +117,11 @@ module Fluent
         raise Fluent::ConfigError, "`parse` must be either of `none` or `full`"
       end
 
-      @post_message_opts = @auto_channels_create ? {auto_channels_create: true} : {}
+      @post_message_opts = {}
+      if @auto_channels_create
+        raise Fluent::ConfigError, "`token` parameter is required to use `auto_channels_create`" unless @token
+        @post_message_opts = {auto_channels_create: true}
+      end
     end
 
     def format(tag, time, record)

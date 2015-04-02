@@ -246,6 +246,23 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_not_equal Net::HTTP, d.instance.slack.proxy_class # Net::HTTP.Proxy
   end
 
+  def test_auto_channels_create_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal false, d.instance.auto_channels_create
+    assert_equal({}, d.instance.post_message_opts)
+
+    # require `token`
+    assert_raise(Fluent::ConfigError) do
+      d = create_driver(CONFIG + %[auto_channels_create true])
+    end
+
+    # auto_channels_create
+    d = create_driver(CONFIG + %[auto_channels_create true\ntoken XXX-XX-XXX])
+    assert_equal true, d.instance.auto_channels_create
+    assert_equal({auto_channels_create: true}, d.instance.post_message_opts)
+  end
+
   def test_default_incoming_webhook
     d = create_driver(%[
       channel channel
