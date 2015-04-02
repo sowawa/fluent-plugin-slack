@@ -10,10 +10,11 @@ require 'webrick/httpproxy'
 # Create .env file with contents as:
 #
 #     WEBHOOK_URL=https://hooks.slack.com/services/XXXX/YYYY/ZZZZ
-#     TOKEN=XXXXX
+#     SLACKBOt_URL=https://xxxx.slack.com/services/hooks/slackbot?token=XXXX
+#     SLACK_API_TOKEN=XXXXX
 #
 Dotenv.load
-if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
+if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
 
   class TestProxyServer
     def initialize
@@ -47,71 +48,108 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
   end
 
   class SlackClientTest < Test::Unit::TestCase
+    class << self
+      attr_reader :proxy
+
+      def startup
+        @proxy = TestProxyServer.new.tap {|proxy| proxy.start }
+      end
+
+      def shutdown
+        @proxy.shutdown
+      end
+    end
+
     def setup
       super
       @incoming       = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'])
       @slackbot       = Fluent::SlackClient::Slackbot.new(ENV['SLACKBOT_URL'])
       @api            = Fluent::SlackClient::WebApi.new
 
-      @proxy          = TestProxyServer.new.tap {|proxy| proxy.start }
-      @incoming_proxy = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'], @proxy.proxy_url)
-      @slackbot_proxy = Fluent::SlackClient::Slackbot.new(ENV['SLACKBOT_URL'], @proxy.proxy_url)
-      @api_proxy      = Fluent::SlackClient::WebApi.new(nil, @proxy.proxy_url)
+      proxy_url       = self.class.proxy.proxy_url
+      @incoming_proxy = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'], proxy_url)
+      @slackbot_proxy = Fluent::SlackClient::Slackbot.new(ENV['SLACKBOT_URL'], proxy_url)
+      @api_proxy      = Fluent::SlackClient::WebApi.new(nil, proxy_url)
 
       @icon_url = 'http://www.google.com/s2/favicons?domain=www.google.de'
     end
 
-    def teardown
-      @proxy.shutdown
-    end
-
     def token(client)
-      client.is_a?(Fluent::SlackClient::IncomingWebhook) ? {} : {token: ENV['TOKEN']}
+      client.is_a?(Fluent::SlackClient::IncomingWebhook) ? {} : {token: ENV['SLACK_API_TOKEN']}
     end
 
-    def test_post_message_text
+    def default_payload(client)
+      {
+        channel:   '#general',
+        mrkdwn:     true,
+        link_names: true,
+      }.merge!(token(client))
+    end
+
+    def default_attachment
+      {
+        mrkdwn_in: %w[text fields]
+      }
+    end
+
+    # Notification via Mention works for all three with plain text payload
+    def test_post_message_plain_payload_mention
       [@incoming, @slackbot, @api].each do |slack|
         assert_nothing_raised do
-          slack.post_message(
-            {
-              channel:     '#general',
-              username:    'fluentd',
-              icon_emoji:  ':question:',
-              attachments: [{
-                color:    'good',
-                fallback: "sowawa1\nsowawa2\n",
-                text:     "sowawa1\nsowawa2\n",
-              }]
-            }.merge(token(slack))
-          )
+          slack.post_message(default_payload(slack).merge({
+            text: "#general @everyone\n",
+          }))
         end
       end
     end
 
-    def test_post_message_fields
+    # Notification via Highlight Words works with only Slackbot with plain text payload
+    # NOTE: Please add `sowawa1` to Highlight Words
+    def test_post_message_plain_payload_highlight_words
       [@incoming, @slackbot, @api].each do |slack|
         assert_nothing_raised do
-          slack.post_message(
-            {
-              channel:     '#general',
-              username:    'fluentd',
-              icon_emoji:  ':question:',
-              attachments: [{
-                color:    'good',
-                fallback: 'test1 test2',
-                fields:   [
-                  {
-                    title: 'test1',
-                    value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
-                  },
-                  {
-                    title: 'test2',
-                    value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
-                  },
-                ],
-              }]
-            }.merge(token(slack))
-          )
+          slack.post_message(default_payload(slack).merge({
+            text: "sowawa1\n",
+          }))
+        end
+      end
+    end
+
+    # Notification via Mention does not work for attachments
+    def test_post_message_color_payload
+      [@incoming, @slackbot, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(default_payload(slack).merge({
+            attachments: [default_attachment.merge({
+              color:    'good',
+              fallback: "sowawa1\n@everyone\n",
+              text:     "sowawa1\n@everyone\n",
+            })]
+          }))
+        end
+      end
+    end
+
+    # Notification via Mention does not work for attachments
+    def test_post_message_fields_payload
+      [@incoming, @slackbot, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(default_payload(slack).merge({
+            attachments: [default_attachment.merge({
+              color:    'good',
+              fallback: 'test1 test2',
+              fields:   [
+                {
+                  title: 'test1',
+                  value: "[07:00:00] sowawa1\n[07:00:00] @everyone\n",
+                },
+                {
+                  title: 'test2',
+                  value: "[07:00:00] sowawa1\n[07:00:00] @everyone\n",
+                },
+              ],
+            })]
+          }))
         end
       end
     end
@@ -119,18 +157,24 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
     def test_post_via_proxy
       [@incoming_proxy, @slackbot_proxy, @api_proxy].each do |slack|
         assert_nothing_raised do
-          slack.post_message(
-            {
-              channel:     '#general',
-              username:    'fluentd',
-              icon_emoji:  ':question:',
-              attachments: [{
-                color:    'good',
-                fallback: "sowawa1\nsowawa2\n",
-                text:     "sowawa1\nsowawa2\n",
-              }]
-            }.merge(token(slack))
-          )
+          slack.post_message(default_payload(slack).merge({
+            attachments: [default_attachment.merge({
+              color:    'good',
+              fallback: "sowawa1\n@everyone\n",
+              text:     "sowawa1\n@everyone\n",
+            })]
+          }))
+        end
+      end
+    end
+
+    def test_post_message_username
+      [@incoming, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(default_payload(slack).merge({
+            username: 'fluentd',
+            text:     "#general @everyone\n",
+          }))
         end
       end
     end
@@ -138,61 +182,14 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
     def test_post_message_icon_url
       [@incoming, @api].each do |slack|
         assert_nothing_raised do
-          slack.post_message(
-            {
-              channel:     '#general',
-              username:    'fluentd',
-              icon_url:    @icon_url,
-              attachments: [{
-                color:    'good',
-                fallback: "sowawa1\nsowawa2\n",
-                text:     "sowawa1\nsowawa2\n",
-              }]
-            }.merge(token(slack))
-          )
-        end
-      end
-    end
-
-    def test_post_message_text_mrkdwn
-      [@incoming, @api].each do |slack|
-        assert_nothing_raised do
-          slack.post_message(
-            {
-              channel:     '#general',
-              username:    'fluentd',
-              attachments: [{
-                color:    'good',
-                fallback: "plain *bold* _italic_ `preformat`\n", # mrkdwn not work
-                text:     "plain *bold* _italic_ `preformat`\n",
-                mrkdwn_in: ['text', 'fields'],
-              }]
-            }.merge(token(slack))
-          )
-        end
-      end
-    end
-
-    def test_post_message_fields_mrkdwn
-      [@incoming, @api].each do |slack|
-        assert_nothing_raised do
-          slack.post_message(
-            {
-              channel:     '#general',
-              username:    'fluentd',
-              attachments: [{
-                color:    'good',
-                fallback: "plain *bold* _italic_ `preformat`\n", # mrkdwn not work
-                fields:   [
-                  {
-                    title: 'plain *bold* _italic* `preformat`', # mrkdwn not work
-                    value: "plain *bold* _italic* `preformat`\n",
-                  },
-                ],
-                mrkdwn_in: ['text', 'fields'],
-              }]
-            }.merge(token(slack))
-          )
+          slack.post_message(default_payload(slack).merge({
+            icon_url:    @icon_url,
+            attachments: [default_attachment.merge({
+              color:    'good',
+              fallback: "sowawa1\n@everyone\n",
+              text:     "sowawa1\n@everyone\n",
+            })]
+          }))
         end
       end
     end
@@ -201,11 +198,9 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
     # but slack does not provide channels.delete API
     def test_channels_create
       begin
-        @api.channels_create(
-          {
-            name: '#test_channels_create',
-          }.merge(token(@api))
-        )
+        @api.channels_create(token(@api).merge({
+          name: '#test_channels_create',
+        }))
       rescue Fluent::SlackClient::NameTakenError
       end
     end
@@ -214,17 +209,11 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
     # but slack does not provide channels.delete API
     def test_auto_channels_create
       assert_nothing_raised do
-        @api.post_message(
+        @api.post_message(default_payload(@api).merge(
           {
-            channel:     '#test_auto_api',
-            username:    'fluentd',
-            icon_emoji:  ':question:',
-            attachments: [{
-              color:    'good',
-              fallback: "bar\n",
-              text:     "bar\n",
-            }]
-          }.merge(token(@api)),
+            channel:  '#test_auto_api',
+            text:     "bar\n",
+          }),
           {
             auto_channels_create: true,
           }
@@ -232,17 +221,11 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['TOKEN']
       end
 
       assert_nothing_raised do
-        @slackbot.post_message(
+        @slackbot.post_message(default_payload(@slackbot).merge(
           {
-            channel:     '#test_auto_slackbot',
-            username:    'fluentd',
-            icon_emoji:  ':question:',
-            attachments: [{
-              color:    'good',
-              fallback: "bar\n",
-              text:     "bar\n",
-            }]
-          }.merge(token(@api)),
+            channel:  '#test_auto_slackbot',
+            text:     "bar\n",
+          }),
           {
             auto_channels_create: true,
           }

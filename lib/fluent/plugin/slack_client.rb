@@ -151,8 +151,12 @@ module Fluent
       end
 
       def encode_body(params = {})
-        raise ArgumentError, 'params[:attachments] is required' unless params[:attachments]
-        attachment = Array(params[:attachments]).first # let me see only the first for now
+        return params[:text]if params[:text]
+        unless params[:attachments]
+          raise ArgumentError, 'params[:text] or params[:attachments] is required'
+        end
+        # handle params[:attachments]
+        attachment = Array(params[:attachments]).first # see only the first for now
         # {
         #   attachments: [{
         #     text: "HERE",
@@ -168,7 +172,7 @@ module Fluent
         #   }]
         # }
         if text.nil? and attachment[:fields]
-          text = Array(attachment[:fields]).first[:value] # let me see only the first for now
+          text = Array(attachment[:fields]).first[:value] # see only the first for now
         end
         text
       end

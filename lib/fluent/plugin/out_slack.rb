@@ -14,11 +14,13 @@ module Fluent
     config_param :webhook_url,          :string, default: nil # incoming webhook
     config_param :slackbot_url,         :string, default: nil # slackbot
     config_param :token,                :string, default: nil # api token
-    config_param :username,             :string, default: 'fluentd'
-    config_param :color,                :string, default: 'good'
+    config_param :username,             :string, default: nil
+    config_param :color,                :string, default: nil
     config_param :icon_emoji,           :string, default: nil
     config_param :icon_url,             :string, default: nil
-    config_param :mrkdwn,               :bool,   default: false
+    config_param :mrkdwn,               :bool,   default: true
+    config_param :link_names,           :bool,   default: true
+    config_param :parse,                :string, default: nil
     config_param :auto_channels_create, :bool,   default: false
     config_param :https_proxy,          :string, default: nil
 
@@ -56,25 +58,19 @@ module Fluent
         if @webhook_url.empty?
           raise Fluent::ConfigError.new("`webhook_url` is an empty string")
         end
-        # following default values are for old version compatibility
-        @title         ||= '%s'
-        @title_keys    ||= %w[tag]
-        @message       ||= '[%s] %s'
-        @message_keys  ||= %w[time message]
         @slack = Fluent::SlackClient::IncomingWebhook.new(@webhook_url)
       elsif @slackbot_url
         if @slackbot_url.empty?
           raise Fluent::ConfigError.new("`slackbot_url` is an empty string")
         end
-        @message      ||= '%s'
-        @message_keys ||= %w[message]
+        if @username or @color or @icon_emoji or @icon_url
+          log.warn "out_slack: `username`, `color`, `icon_emoji`, `icon_url` parameters are not available for Slackbot Remote Control"
+        end
         @slack = Fluent::SlackClient::Slackbot.new(@slackbot_url)
       elsif @token
         if @token.empty?
           raise Fluent::ConfigError.new("`token` is an empty string")
         end
-        @message      ||= '%s'
-        @message_keys ||= %w[message]
         @slack = Fluent::SlackClient::WebApi.new
       else
         raise Fluent::ConfigError.new("One of `webhook_url` or `slackbot_url`, or `token` is required")
@@ -86,6 +82,8 @@ module Fluent
         @slack.https_proxy = @https_proxy
       end
 
+      @message      ||= '%s'
+      @message_keys ||= %w[message]
       begin
         @message % (['1'] * @message_keys.length)
       rescue ArgumentError
@@ -109,11 +107,14 @@ module Fluent
       if @icon_emoji and @icon_url
         raise Fluent::ConfigError, "either of `icon_emoji` or `icon_url` can be specified"
       end
-      @icon_emoji ||= ':question:' unless @icon_url
 
       if @mrkdwn
         # Enable markdown for attachments. See https://api.slack.com/docs/formatting
         @mrkdwn_in = %w[text fields]
+      end
+
+      if @parse and !%w[none full].include?(@parse)
+        raise Fluent::ConfigError, "`parse` must be either of `none` or `full`"
       end
 
       @post_message_opts = @auto_channels_create ? {auto_channels_create: true} : {}
@@ -142,6 +143,8 @@ module Fluent
     def build_payloads(chunk)
       if @title
         build_title_payloads(chunk)
+      elsif @color
+        build_color_payloads(chunk)
       else
         build_plain_payloads(chunk)
       end
@@ -150,9 +153,12 @@ module Fluent
     def common_payload
       return @common_payload if @common_payload
       @common_payload = {}
-      @common_payload[:username]   = @username
+      @common_payload[:username]   = @username   if @username
       @common_payload[:icon_emoji] = @icon_emoji if @icon_emoji
       @common_payload[:icon_url]   = @icon_url   if @icon_url
+      @common_payload[:mrkdwn]     = @mrkdwn     if @mrkdwn
+      @common_payload[:link_names] = @link_names if @link_names
+      @common_payload[:parse]      = @parse      if @parse
       @common_payload[:token]      = @token      if @token
       @common_payload
     end
@@ -160,7 +166,8 @@ module Fluent
     def common_attachment
       return @common_attachment if @common_attachment
       @common_attachment = {}
-      @common_attachment[:mrkdwn_in]  = @mrkdwn_in  if @mrkdwn_in
+      @common_attachment[:color]     = @color     if @color
+      @common_attachment[:mrkdwn_in] = @mrkdwn_in if @mrkdwn_in
       @common_attachment
     end
 
@@ -179,9 +186,26 @@ module Fluent
         {
           channel: channel,
           attachments: [{
-            :color    => @color,
             :fallback => fields.values.map(&:title).join(' '), # fallback is the message shown on popup
             :fields   => fields.values.map(&:to_h)
+          }.merge(common_attachment)],
+        }.merge(common_payload)
+      end
+    end
+
+    def build_color_payloads(chunk)
+      messages = {}
+      chunk.msgpack_each do |tag, time, record|
+        channel = build_channel(record)
+        messages[channel] ||= ''
+        messages[channel] << "#{build_message(record)}\n"
+      end
+      messages.map do |channel, text|
+        {
+          channel: channel,
+          attachments: [{
+            :fallback => text,
+            :text     => text,
           }.merge(common_attachment)],
         }.merge(common_payload)
       end
@@ -197,11 +221,7 @@ module Fluent
       messages.map do |channel, text|
         {
           channel: channel,
-          attachments: [{
-            :color    => @color,
-            :fallback => text,
-            :text     => text,
-          }.merge(common_attachment)],
+          text:    text,
         }.merge(common_payload)
       end
     end

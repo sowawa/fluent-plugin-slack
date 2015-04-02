@@ -12,8 +12,22 @@ class SlackOutputTest < Test::Unit::TestCase
 
   CONFIG = %[
     channel channel
-    token   XXX-XXX-XXX
+    webhook_url https://hooks.slack.com/services/XXXX/XXXX/XXX
   ]
+
+  def default_payload
+    {
+      channel:    '#channel',
+      mrkdwn:     true,
+      link_names: true,
+    }
+  end
+
+  def default_attachment
+    {
+      mrkdwn_in: %w[text fields],
+    }
+  end
 
   def create_driver(conf = CONFIG)
     Fluent::Test::BufferedOutputTestDriver.new(Fluent::SlackOutput).configure(conf)
@@ -23,12 +37,15 @@ class SlackOutputTest < Test::Unit::TestCase
   def test_old_config
     # default check
     d = create_driver
-    assert_equal true,         d.instance.localtime
-    assert_equal 'fluentd',    d.instance.username
-    assert_equal 'good',       d.instance.color
-    assert_equal ':question:', d.instance.icon_emoji
+    assert_equal true, d.instance.localtime
+    assert_equal nil,  d.instance.username   # 'fluentd'    break lower version compatibility
+    assert_equal nil,  d.instance.color      # 'good'       break lower version compatibility
+    assert_equal nil,  d.instance.icon_emoji # ':question:' break lower version compatibility
+    assert_equal nil,  d.instance.icon_url
+    assert_equal true, d.instance.mrkdwn
+    assert_equal true, d.instance.link_names
+    assert_equal nil,  d.instance.parse
 
-    # incoming webhook endpoint was changed. api_key option should be ignored
     assert_nothing_raised do
       create_driver(CONFIG + %[api_key testtoken])
     end
@@ -84,7 +101,9 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_raise(Fluent::ConfigError) do
       create_driver(CONFIG + %[channel %s %s\nchannel_keys foo])
     end
+  end
 
+  def test_slack_configure
     # One of webhook_url or slackbot_url, or token is required
     assert_raise(Fluent::ConfigError) do
       create_driver(%[channel foo])
@@ -146,7 +165,7 @@ class SlackOutputTest < Test::Unit::TestCase
   def test_icon_configure
     # default
     d = create_driver(CONFIG)
-    assert_equal ':question:', d.instance.icon_emoji
+    assert_equal nil, d.instance.icon_emoji
     assert_equal nil, d.instance.icon_url
 
     # either of icon_emoji or icon_url can be specified
@@ -165,6 +184,56 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal @icon_url, d.instance.icon_url
   end
 
+  def test_link_names_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal true, d.instance.link_names
+
+    # true
+    d = create_driver(CONFIG + %[link_names true])
+    assert_equal true, d.instance.link_names
+
+    # false
+    d = create_driver(CONFIG + %[link_names false])
+    assert_equal false, d.instance.link_names
+  end
+
+  def test_parse_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal nil, d.instance.parse
+
+    # none
+    d = create_driver(CONFIG + %[parse none])
+    assert_equal 'none', d.instance.parse
+
+    # full
+    d = create_driver(CONFIG + %[parse full])
+    assert_equal 'full', d.instance.parse
+
+    # invalid
+    assert_raise(Fluent::ConfigError) do
+      d = create_driver(CONFIG + %[parse invalid])
+    end
+  end
+
+  def test_mrkwn_configure
+    # default
+    d = create_driver(CONFIG)
+    assert_equal true, d.instance.mrkdwn
+    assert_equal %w[text fields], d.instance.mrkdwn_in
+
+    # true
+    d = create_driver(CONFIG + %[mrkdwn true])
+    assert_equal true, d.instance.mrkdwn
+    assert_equal %w[text fields], d.instance.mrkdwn_in
+
+    # false
+    d = create_driver(CONFIG + %[mrkdwn false])
+    assert_equal false, d.instance.mrkdwn
+    assert_equal nil, d.instance.mrkdwn_in
+  end
+
   def test_https_proxy_configure
     # default
     d = create_driver(CONFIG)
@@ -177,18 +246,6 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_not_equal Net::HTTP, d.instance.slack.proxy_class # Net::HTTP.Proxy
   end
 
-  def test_mrkwn_configure
-    # default
-    d = create_driver(CONFIG)
-    assert_equal false, d.instance.mrkdwn
-    assert_equal nil, d.instance.mrkdwn_in
-
-    # mrkdwn
-    d = create_driver(CONFIG + %[mrkdwn true])
-    assert_equal true, d.instance.mrkdwn
-    assert_equal %w[text fields], d.instance.mrkdwn_in
-  end
-
   def test_default_incoming_webhook
     d = create_driver(%[
       channel channel
@@ -197,19 +254,9 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal Fluent::SlackClient::IncomingWebhook, d.instance.slack.class
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
-        fallback: 'test',
-        fields:   [{
-          title: 'test',
-          value: "[07:00:00] sowawa1\n[07:00:00] sowawa2\n",
-        }],
-      }]
-    }, {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      text: "sowawa1\nsowawa2\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -225,16 +272,9 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal Fluent::SlackClient::Slackbot, d.instance.slack.class
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
-        fallback: "sowawa1\nsowawa2\n",
-        text:     "sowawa1\nsowawa2\n",
-      }]
-    }, {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      text: "sowawa1\nsowawa2\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -250,17 +290,69 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal Fluent::SlackClient::WebApi, d.instance.slack.class
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      token:       'XX-XX-XX',
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
+    mock(d.instance.slack).post_message(default_payload.merge({
+      token: 'XX-XX-XX',
+      text:  "sowawa1\nsowawa2\n",
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'sowawa1'}, time)
+      d.emit({message: 'sowawa2'}, time)
+      d.run
+    end
+  end
+
+  def test_title_payload
+    title = "mytitle"
+    d = create_driver(CONFIG + %[title #{title}])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    # attachments field should be changed to show the title
+    mock(d.instance.slack).post_message(default_payload.merge({
+      attachments: [default_attachment.merge({
+        fallback: title,
+        fields:   [
+          {
+            title: title,
+            value: "sowawa1\nsowawa2\n",
+          }
+        ],
+      })]
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'sowawa1'}, time)
+      d.emit({message: 'sowawa2'}, time)
+      d.run
+    end
+  end
+
+  def test_color_payload
+    color = 'good'
+    d = create_driver(CONFIG + %[color #{color}])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    # attachments field should be changed to show the title
+    mock(d.instance.slack).post_message(default_payload.merge({
+      attachments: [default_attachment.merge({
+        color:    color,
         fallback: "sowawa1\nsowawa2\n",
         text:     "sowawa1\nsowawa2\n",
-      }]
-    }, {})
+      })]
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'sowawa1'}, time)
+      d.emit({message: 'sowawa2'}, time)
+      d.run
+    end
+  end
+
+  def test_plain_payload
+    d = create_driver(CONFIG)
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    # attachments field should be changed to show the title
+    mock(d.instance.slack).post_message(default_payload.merge({
+      text: "sowawa1\nsowawa2\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -269,26 +361,21 @@ class SlackOutputTest < Test::Unit::TestCase
   end
 
   def test_title_keys
-    d = create_driver(CONFIG + %[title %s\ntitle_keys tag])
+    d = create_driver(CONFIG + %[title [%s] %s\ntitle_keys time,tag])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
     # attachments field should be changed to show the title
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
-        fallback: d.tag,
+    mock(d.instance.slack).post_message(default_payload.merge({
+      attachments: [default_attachment.merge({
+        fallback: "[07:00:00] #{d.tag}",
         fields:   [
           {
-            title: d.tag,
+            title: "[07:00:00] #{d.tag}",
             value: "sowawa1\nsowawa2\n",
           }
         ],
-      }]
-    }, {})
+      })]
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -297,20 +384,12 @@ class SlackOutputTest < Test::Unit::TestCase
   end
 
   def test_message_keys
-    d = create_driver(CONFIG + %[message %s %s\nmessage_keys tag,message])
+    d = create_driver(CONFIG + %[message [%s] %s %s\nmessage_keys time,tag,message])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
-        fallback: "test sowawa1\ntest sowawa2\n",
-        text:     "test sowawa1\ntest sowawa2\n",
-      }]
-    }, {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      text: "[07:00:00] test sowawa1\n[07:00:00] test sowawa2\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1'}, time)
       d.emit({message: 'sowawa2'}, time)
@@ -322,28 +401,14 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[channel %s\nchannel_keys channel])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel1',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
-        fallback: "sowawa1\n",
-        text:     "sowawa1\n",
-      }]
-    }, {})
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel2',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
-        fallback: "sowawa2\n",
-        text:     "sowawa2\n",
-      }]
-    }, {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      channel: '#channel1',
+      text:    "sowawa1\n",
+    }), {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      channel: '#channel2',
+      text:    "sowawa2\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'sowawa1', channel: 'channel1'}, time)
       d.emit({message: 'sowawa2', channel: 'channel2'}, time)
@@ -355,17 +420,10 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[icon_emoji :ghost:])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':ghost:',
-      attachments: [{
-        color:    'good',
-        fallback: "foo\n",
-        text:     "foo\n",
-      }]
-    }, {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      icon_emoji: ':ghost:',
+      text:       "foo\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'foo'}, time)
       d.run
@@ -376,17 +434,10 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[icon_url #{@icon_url}])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_url:    @icon_url,
-      attachments: [{
-        color:    'good',
-        fallback: "foo\n",
-        text:     "foo\n",
-      }]
-    }, {})
+    mock(d.instance.slack).post_message(default_payload.merge({
+      icon_url: @icon_url,
+      text:     "foo\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'foo'}, time)
       d.run
@@ -397,18 +448,56 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[mrkdwn true])
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
     d.tag  = 'test'
-    mock(d.instance.slack).post_message({
-      token:       'XXX-XXX-XXX',
-      channel:     '#channel',
-      username:    'fluentd',
-      icon_emoji:  ':question:',
-      attachments: [{
-        color:    'good',
+    mock(d.instance.slack).post_message(default_payload.merge({
+      mrkdwn: true,
+      text:   "foo\n",
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'foo'}, time)
+      d.run
+    end
+  end
+
+  def test_mrkdwn_in
+    d = create_driver(CONFIG + %[mrkdwn true\ncolor good])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message(default_payload.merge({
+      attachments: [default_attachment.merge({
+        color:    "good",
         fallback: "foo\n",
         text:     "foo\n",
         mrkdwn_in: ["text", "fields"],
-      }]
-    }, {})
+      })]
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'foo'}, time)
+      d.run
+    end
+  end
+
+  def test_link_names
+    d = create_driver(CONFIG + %[link_names true])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message(default_payload.merge({
+      link_names: true,
+      text:       "foo\n",
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'foo'}, time)
+      d.run
+    end
+  end
+
+  def test_parse
+    d = create_driver(CONFIG + %[parse full])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    mock(d.instance.slack).post_message(default_payload.merge({
+      parse: "full",
+      text:  "foo\n",
+    }), {})
     with_timezone('Asia/Tokyo') do
       d.emit({message: 'foo'}, time)
       d.run
