@@ -132,7 +132,7 @@ module Fluent
       begin
         payloads = build_payloads(chunk)
         payloads.each {|payload| @slack.post_message(payload, @post_message_opts) }
-      rescue Net::OpenTimeout, Net::ReadTimeout => e
+      rescue Timeout::Error => e
         log.warn "out_slack:", :error => e.to_s, :error_class => e.class.to_s
         raise e # let Fluentd retry
       rescue => e
@@ -176,6 +176,8 @@ module Fluent
     end
 
     Field = Struct.new("Field", :title, :value)
+    # ruby 1.9.x does not provide #to_h
+    Field.send(:define_method, :to_h) { {title: title, value: value} }
 
     def build_title_payloads(chunk)
       ch_fields = {}
