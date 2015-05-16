@@ -1,3 +1,9 @@
+## 0.6.1 (2015/05/17)
+
+Fixes:
+
+* Support ruby 1.9.3
+
 ## 0.6.0 (2015/04/02)
 
 This version has impcompatibility with previous versions in default option values
