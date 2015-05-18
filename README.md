@@ -1,4 +1,4 @@
-# Fluent event to slack plugin.
+# fluent-plugin-slack [![Build Status](https://travis-ci.org/sowawa/fluent-plugin-slack.svg)](https://travis-ci.org/sowawa/fluent-plugin-slack)
 
 # Installation
 
