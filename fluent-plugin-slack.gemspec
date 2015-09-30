@@ -5,6 +5,7 @@ Gem::Specification.new do |gem|
   gem.name        = "fluent-plugin-slack"
   gem.description = "fluent Slack plugin"
   gem.homepage    = "https://github.com/sowawa/fluent-plugin-slack"
+  gem.license     = "Apache-2.0"
   gem.summary     = gem.description
   gem.version     = File.read("VERSION").strip
   gem.authors     = ["Keisuke SOGAWA", "Naotoshi Seo"]
