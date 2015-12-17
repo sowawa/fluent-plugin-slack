@@ -1,3 +1,9 @@
+## 0.6.2 (2015/12/17)
+
+Fixes:
+
+* escape special characters in message (thanks @fujiwara)
+
 ## 0.6.1 (2015/05/17)
 
 Fixes:
