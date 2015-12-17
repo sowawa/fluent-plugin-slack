@@ -5,3 +5,5 @@ rvm:
   - 2.2.*
 gemfile:
   - Gemfile
+before_install:
+  - gem update bundler
