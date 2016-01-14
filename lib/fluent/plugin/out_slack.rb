@@ -10,29 +10,93 @@ module Fluent
 
     config_set_default :include_time_key, true
     config_set_default :include_tag_key, true
-   
-    config_param :webhook_url,          :string, default: nil # incoming webhook
-    config_param :slackbot_url,         :string, default: nil # slackbot
-    config_param :token,                :string, default: nil # api token
+
+    desc <<-DESC
+Incoming Webhook URI (Required for Incoming Webhook mode).
+See: https://api.slack.com/incoming-webhooks
+DESC
+    config_param :webhook_url,          :string, default: nil
+    desc <<-DESC
+Slackbot URI (Required for Slackbot mode).
+See https://api.slack.com/slackbot.
+NOTE: most of optional parameters such as `username`, `color`, `icon_emoji`,
+`icon_url`, and `title` are not available for this mode, but Desktop Notification
+via Highlight Words works with only this mode.
+DESC
+    config_param :slackbot_url,         :string, default: nil
+    desc <<-DESC
+Token for Web API (Required for Web API mode). See: https://api.slack.com/web.
+DESC
+    config_param :token,                :string, default: nil
+    desc "Name of bot."
     config_param :username,             :string, default: nil
+    desc <<-DESC
+Color to use such as `good` or `bad`.
+See Color section of https://api.slack.com/docs/attachments.
+NOTE: This parameter must not be specified to receive Desktop Notification
+via Mentions in cases of Incoming Webhook and Slack Web API.
+DESC
     config_param :color,                :string, default: nil
+    desc <<-DESC
+Emoji to use as the icon.
+Either of `icon_emoji` or `icon_url` can be specified.
+DESC
     config_param :icon_emoji,           :string, default: nil
+    desc <<-DESC
+Url to an image to use as the icon.
+Either of `icon_emoji` or `icon_url` can be specified.
+DESC
     config_param :icon_url,             :string, default: nil
+    desc "Enable formatting. See: https://api.slack.com/docs/formatting."
     config_param :mrkdwn,               :bool,   default: true
+    desc <<-DESC
+Find and link channel names and usernames.
+NOTE: This parameter must be `true` to receive Desktop Notification
+via Mentions in cases of Incoming Webhook and Slack Web API.
+DESC
     config_param :link_names,           :bool,   default: true
+    desc <<-DESC
+Change how messages are treated. `none` or `full` can be specified.
+See Parsing mode section of https://api.slack.com/docs/formatting.
+DESC
     config_param :parse,                :string, default: nil
+    desc <<-DESC
+Create channels if not exist. Not available for Incoming Webhook mode
+(since Incoming Webhook is specific to a channel).
+A web api token for Normal User is required.
+(Bot User can not create channels. See https://api.slack.com/bot-users)
+DESC
     config_param :auto_channels_create, :bool,   default: false
+    desc "https proxy url such as https://proxy.foo.bar:443"
     config_param :https_proxy,          :string, default: nil
 
+    desc "channel to send messages (without first '#')."
     config_param :channel,              :string
+    desc <<-DESC
+Keys used to format channel.
+%s will be replaced with value specified by channel_keys if this option is used.
+DESC
     config_param :channel_keys,         default: nil do |val|
       val.split(',')
     end
+    desc <<-DESC
+Title format.
+%s will be replaced with value specified by title_keys.
+Title is created from the first appeared record on each tag.
+NOTE: This parameter must **not** be specified to receive Desktop Notification
+via Mentions in cases of Incoming Webhook and Slack Web API.
+DESC
     config_param :title,                :string, default: nil
+    desc "Keys used to format the title."
     config_param :title_keys,           default: nil do |val|
       val.split(',')
     end
+    desc <<-DESC
+Message format.
+%s will be replaced with value specified by message_keys.
+DESC
     config_param :message,              :string, default: nil
+    desc "Keys used to format messages."
     config_param :message_keys,         default: nil do |val|
       val.split(',')
     end
