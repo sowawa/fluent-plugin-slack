@@ -5,6 +5,14 @@ module Fluent
     Fluent::Plugin.register_output('buffered_slack', self) # old version compatiblity
     Fluent::Plugin.register_output('slack', self)
 
+    # For fluentd v0.12.16 or earlier
+    class << self
+      unless method_defined?(:desc)
+        def desc(description)
+        end
+      end
+    end
+
     include SetTimeKeyMixin
     include SetTagKeyMixin
 
