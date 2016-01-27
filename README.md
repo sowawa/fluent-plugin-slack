@@ -10,7 +10,7 @@ $ fluent-gem install fluent-plugin-slack
 
 ```apache
 <match slack>
-  type slack
+  @type slack
   webhook_url https://hooks.slack.com/services/XXX/XXX/XXX
   channel general
   username sowasowa
@@ -29,7 +29,7 @@ fluent_logger.post('slack', {
 
 ```apache
 <match slack>
-  type slack
+  @type slack
   slackbot_url https://xxxx.slack.com/services/hooks/slackbot?token=XXXXXXXXX
   channel general
   flush_interval 60s
@@ -46,7 +46,7 @@ fluent_logger.post('slack', {
 
 ```apache
 <match slack>
-  type slack
+  @type slack
   token xoxb-XXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX
   channel general
   username sowasowa
