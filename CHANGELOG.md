@@ -1,3 +1,9 @@
+## 0.6.3 (2016/05/11)
+
+Enhancements:
+
+* Add `verbose_fallback` option to show fallback (popup) verbosely (thanks @eisuke)
+
 ## 0.6.2 (2015/12/17)
 
 Fixes:
