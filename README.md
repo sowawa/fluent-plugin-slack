@@ -83,7 +83,7 @@ fluent_logger.post('slack', {
 |message_keys|keys used to format messages|message|
 |auto_channels_create|Create channels if not exist. Not available for Incoming Webhook mode (since Incoming Webhook is specific to a channel). A web api `token` for Normal User is required (Bot User can not create channels. See https://api.slack.com/bot-users)|false|
 |https_proxy|https proxy url such as `https://proxy.foo.bar:443`|nil|
-|verbose_fallback|Include messages to the fallback attributes|false|
+|verbose_fallback|Originally, only `title` is used for the fallback which is the message shown on popup if `title` is given. If this option is set to be `true`, messages are also included to the fallback attribute|false|
 
 `fluent-plugin-slack` uses `SetTimeKeyMixin` and `SetTagKeyMixin`, so you can also use:
 
