@@ -326,7 +326,7 @@ class SlackOutputTest < Test::Unit::TestCase
     # attachments field should be changed to show the title
     mock(d.instance.slack).post_message(default_payload.merge({
       attachments: [default_attachment.merge({
-        fallback: title,
+        fallback: "#{title} sowawa1\nsowawa2\n",
         fields:   [
           {
             title: title,
@@ -384,7 +384,7 @@ class SlackOutputTest < Test::Unit::TestCase
     # attachments field should be changed to show the title
     mock(d.instance.slack).post_message(default_payload.merge({
       attachments: [default_attachment.merge({
-        fallback: "[07:00:00] #{d.tag}",
+        fallback: "[07:00:00] #{d.tag} sowawa1\nsowawa2\n",
         fields:   [
           {
             title: "[07:00:00] #{d.tag}",

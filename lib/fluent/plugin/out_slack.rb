@@ -264,7 +264,7 @@ DESC
         {
           channel: channel,
           attachments: [{
-            :fallback => fields.values.map(&:title).join(' '), # fallback is the message shown on popup
+            :fallback => fields.values.map { |f| "#{f.title} #{f.value}" }.join(' '), # fallback is the message shown on popup
             :fields   => fields.values.map(&:to_h)
           }.merge(common_attachment)],
         }.merge(common_payload)
