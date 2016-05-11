@@ -342,6 +342,30 @@ class SlackOutputTest < Test::Unit::TestCase
     end
   end
 
+  def test_title_payload_with_verbose_fallback_option
+    title = "mytitle"
+    d = create_driver(CONFIG + %[title #{title}\nverbose_fallback true])
+    time = Time.parse("2014-01-01 22:00:00 UTC").to_i
+    d.tag  = 'test'
+    # attachments field should be changed to show the title
+    mock(d.instance.slack).post_message(default_payload.merge({
+      attachments: [default_attachment.merge({
+        fallback: "#{title} sowawa1\nsowawa2\n",
+        fields:   [
+          {
+            title: title,
+            value: "sowawa1\nsowawa2\n",
+          }
+        ],
+      })]
+    }), {})
+    with_timezone('Asia/Tokyo') do
+      d.emit({message: 'sowawa1'}, time)
+      d.emit({message: 'sowawa2'}, time)
+      d.run
+    end
+  end
+
   def test_color_payload
     color = 'good'
     d = create_driver(CONFIG + %[color #{color}])

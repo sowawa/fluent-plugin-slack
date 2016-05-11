@@ -109,6 +109,9 @@ DESC
       val.split(',')
     end
 
+    desc "Include messages to the fallback attributes"
+    config_param :verbose_fallback,     :bool,   default: false
+
     # for test
     attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in, :post_message_opts
 
@@ -261,10 +264,16 @@ DESC
         ch_fields[channel][per].value << "#{build_message(record)}\n"
       end
       ch_fields.map do |channel, fields|
+        fallback_text = if @verbose_fallback
+                          fields.values.map { |f| "#{f.title} #{f.value}" }.join(' ')
+                        else
+                          fields.values.map(&:title).join(' ')
+                        end
+
         {
           channel: channel,
           attachments: [{
-            :fallback => fields.values.map(&:title).join(' '), # fallback is the message shown on popup
+            :fallback => fallback_text, # fallback is the message shown on popup
             :fields   => fields.values.map(&:to_h)
           }.merge(common_attachment)],
         }.merge(common_payload)
