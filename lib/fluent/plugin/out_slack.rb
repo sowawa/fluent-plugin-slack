@@ -49,6 +49,13 @@ DESC
 Emoji to use as the icon.
 Either of `icon_emoji` or `icon_url` can be specified.
 DESC
+    config_param :as_user,           :bool, default: nil
+    desc <<-DESC
+Post message as the authenticated user.
+NOTE: This parameter is only enabled if you use the Web API with your bot token.
+You cannot use both of `username` and `icon_emoji`(`icon_url`) when
+you set this parameter to `true`.
+DESC
     config_param :icon_emoji,           :string, default: nil
     desc <<-DESC
 Url to an image to use as the icon.
@@ -133,6 +140,9 @@ DESC
         if @webhook_url.empty?
           raise Fluent::ConfigError.new("`webhook_url` is an empty string")
         end
+        unless @as_user.nil?
+          log.warn "out_slack: `as_user` parameter are not available for Incoming Webhook"
+        end
         @slack = Fluent::SlackClient::IncomingWebhook.new(@webhook_url)
       elsif @slackbot_url
         if @slackbot_url.empty?
@@ -140,6 +150,9 @@ DESC
         end
         if @username or @color or @icon_emoji or @icon_url
           log.warn "out_slack: `username`, `color`, `icon_emoji`, `icon_url` parameters are not available for Slackbot Remote Control"
+        end
+        unless @as_user.nil?
+          log.warn "out_slack: `as_user` parameter are not available for Slackbot Remote Control"
         end
         @slack = Fluent::SlackClient::Slackbot.new(@slackbot_url)
       elsif @token
@@ -181,6 +194,10 @@ DESC
 
       if @icon_emoji and @icon_url
         raise Fluent::ConfigError, "either of `icon_emoji` or `icon_url` can be specified"
+      end
+
+      if @as_user and (@icon_emoji or @icon_url or @username)
+        raise Fluent::ConfigError, "`username`, `icon_emoji` and `icon_url` cannot be specified when `as_user` is set to true"
       end
 
       if @mrkdwn
@@ -232,6 +249,7 @@ DESC
     def common_payload
       return @common_payload if @common_payload
       @common_payload = {}
+      @common_payload[:as_user]    = @as_user    unless @as_user.nil?
       @common_payload[:username]   = @username   if @username
       @common_payload[:icon_emoji] = @icon_emoji if @icon_emoji
       @common_payload[:icon_url]   = @icon_url   if @icon_url
