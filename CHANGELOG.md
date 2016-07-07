@@ -1,3 +1,9 @@
+## 0.6.4 (2016/07/07)
+
+Enhancements:
+
+* Add `as_user` option (thanks @yacchin1205)
+
 ## 0.6.3 (2016/05/11)
 
 Enhancements:
