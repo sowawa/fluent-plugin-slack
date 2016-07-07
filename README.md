@@ -68,7 +68,7 @@ fluent_logger.post('slack', {
 |webhook_url|Incoming Webhook URI (Required for Incoming Webhook mode). See https://api.slack.com/incoming-webhooks||
 |slackbot_url|Slackbot URI (Required for Slackbot mode). See https://api.slack.com/slackbot. NOTE: most of optional parameters such as `username`, `color`, `icon_emoji`, `icon_url`, and `title` are not available for this mode, but Desktop Notification via Highlight Words works with only this mode||
 |token|Token for Web API (Required for Web API mode). See https://api.slack.com/web||
-|as_user|post messages as a bot user|nil|
+|as_user|post messages as a bot user. See https://api.slack.com/bot-users#post_messages_and_react_to_users. NOTE: This parameter is only enabled if you use the Web API with your bot token. You cannot use both of `username` and `icon_emoji`(`icon_url`) when you set this parameter to `true`.|nil|
 |username|name of bot|nil|
 |color|color to use such as `good` or `bad`. See `Color` section of https://api.slack.com/docs/attachments. NOTE: This parameter must **not** be specified to receive Desktop Notification via Mentions in cases of Incoming Webhook and Slack Web API|nil|
 |icon_emoji|emoji to use as the icon. either of `icon_emoji` or `icon_url` can be specified|nil|
