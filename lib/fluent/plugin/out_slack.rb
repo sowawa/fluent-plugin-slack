@@ -52,7 +52,7 @@ DESC
     config_param :as_user,           :bool, default: nil
     desc <<-DESC
 Post message as the authenticated user.
-NOTE: This parameter is only enabled if you use the Web API.
+NOTE: This parameter is only enabled if you use the Web API with your bot token.
 You cannot use both of `username` and `icon_emoji`(`icon_url`) when
 you set this parameter to `true`.
 DESC
