@@ -247,12 +247,13 @@ DESC
     end
 
     def common_payload
-      return @common_payload if @common_payload
-      @common_payload = {}
-      @common_payload[:as_user]    = @as_user    unless @as_user.nil?
+      @common_payload = @common_payload || {}
       @common_payload[:username]   = @username   if @username
       @common_payload[:icon_emoji] = @icon_emoji if @icon_emoji
       @common_payload[:icon_url]   = @icon_url   if @icon_url
+      
+      return @common_payload if @common_payload
+      @common_payload[:as_user]    = @as_user    unless @as_user.nil?
       @common_payload[:mrkdwn]     = @mrkdwn     if @mrkdwn
       @common_payload[:link_names] = @link_names if @link_names
       @common_payload[:parse]      = @parse      if @parse
