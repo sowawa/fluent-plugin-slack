@@ -1,9 +1,14 @@
+require 'fluent/plugin/output'
 require_relative 'slack_client'
 
-module Fluent
-  class SlackOutput < Fluent::BufferedOutput
+module Fluent::Plugin
+  class SlackOutput < Output
     Fluent::Plugin.register_output('buffered_slack', self) # old version compatiblity
     Fluent::Plugin.register_output('slack', self)
+
+    helpers :inject, :compat_parameters
+
+    DEFAULT_BUFFER_TYPE = "memory"
 
     # For fluentd v0.12.16 or earlier
     class << self
@@ -13,8 +18,8 @@ module Fluent
       end
     end
 
-    include SetTimeKeyMixin
-    include SetTagKeyMixin
+    include Fluent::SetTimeKeyMixin
+    include Fluent::SetTagKeyMixin
 
     config_set_default :include_time_key, true
     config_set_default :include_tag_key, true
@@ -119,6 +124,16 @@ DESC
     desc "Include messages to the fallback attributes"
     config_param :verbose_fallback,     :bool,   default: false
 
+    config_section :inject, param_name: :inject_config do
+      config_set_default :tag_key, "tag"
+      config_set_default :time_key, "time"
+      config_set_default :time_type, :string
+    end
+
+    config_section :buffer do
+      config_set_default :@type, DEFAULT_BUFFER_TYPE
+    end
+
     # for test
     attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in, :post_message_opts
 
@@ -130,7 +145,8 @@ DESC
     def configure(conf)
       conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
       conf['localtime'] ||= true unless conf['utc']
- 
+      compat_parameters_convert(conf, :inject)
+
       super
 
       @channel = URI.unescape(@channel) # old version compatibility
@@ -217,7 +233,12 @@ DESC
     end
 
     def format(tag, time, record)
-      [tag, time, record].to_msgpack
+      r = inject_values_to_record(tag, time, record)
+      [tag, time, r].to_msgpack
+    end
+
+    def formatted_to_msgpack_binary
+      true
     end
 
     def write(chunk)
