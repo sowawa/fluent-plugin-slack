@@ -2,6 +2,7 @@
 require_relative '../test_helper'
 require 'fluent/plugin/out_slack'
 require 'fluent/test/driver/output'
+require 'fluent/time' # Fluent::TimeFormatter
 require 'time'
 
 class SlackOutputTest < Test::Unit::TestCase
@@ -39,7 +40,7 @@ class SlackOutputTest < Test::Unit::TestCase
   def test_old_config
     # default check
     d = create_driver
-    assert_equal true, d.instance.localtime
+    assert_equal true, d.instance.inject_config.localtime
     assert_equal nil,  d.instance.username   # 'fluentd'    break lower version compatibility
     assert_equal nil,  d.instance.color      # 'good'       break lower version compatibility
     assert_equal nil,  d.instance.icon_emoji # ':question:' break lower version compatibility
@@ -68,7 +69,7 @@ class SlackOutputTest < Test::Unit::TestCase
 
     # timezone should work
     d = create_driver(CONFIG + %[timezone Asia/Tokyo])
-    assert_equal 'Asia/Tokyo', d.instance.timezone
+    assert_equal 'Asia/Tokyo', d.instance.inject_config.timezone
   end
 
   def test_configure
@@ -84,7 +85,7 @@ class SlackOutputTest < Test::Unit::TestCase
       message_keys message
     ])
     assert_equal '#channel', d.instance.channel
-    assert_equal '%Y/%m/%d %H:%M:%S', d.instance.time_format
+    assert_equal '%Y/%m/%d %H:%M:%S', d.instance.inject_config.time_format
     assert_equal 'username', d.instance.username
     assert_equal 'bad', d.instance.color
     assert_equal ':ghost:', d.instance.icon_emoji
@@ -127,25 +128,32 @@ class SlackOutputTest < Test::Unit::TestCase
     end
   end
 
+  def time_formatter(inject_config)
+    Fluent::TimeFormatter.new(inject_config.time_format, inject_config.localtime, inject_config.timezone)
+  end
+
   def test_timezone_configure
     time = Time.parse("2014-01-01 22:00:00 UTC").to_i
 
     d = create_driver(CONFIG + %[localtime])
     with_timezone('Asia/Tokyo') do
-      assert_equal true,       d.instance.localtime
-      assert_equal "07:00:00", d.instance.timef.format(time)
+      timef = time_formatter(d.instance.inject_config)
+      assert_equal true,       d.instance.inject_config.localtime
+      assert_equal "07:00:00", timef.call(time)
     end
 
     d = create_driver(CONFIG + %[utc])
     with_timezone('Asia/Tokyo') do
-      assert_equal false,      d.instance.localtime
-      assert_equal "22:00:00", d.instance.timef.format(time)
+      timef = time_formatter(d.instance.inject_config)
+      assert_equal false,      d.instance.inject_config.localtime
+      assert_equal "22:00:00", timef.call(time)
     end
 
     d = create_driver(CONFIG + %[timezone Asia/Taipei])
     with_timezone('Asia/Tokyo') do
-      assert_equal "Asia/Taipei", d.instance.timezone
-      assert_equal "06:00:00",    d.instance.timef.format(time)
+      timef = time_formatter(d.instance.inject_config)
+      assert_equal "Asia/Taipei", d.instance.inject_config.timezone
+      assert_equal "06:00:00",    timef.call(time)
     end
   end
 
@@ -154,7 +162,8 @@ class SlackOutputTest < Test::Unit::TestCase
 
     d = create_driver(CONFIG + %[time_format %Y/%m/%d %H:%M:%S])
     with_timezone('Asia/Tokyo') do
-      assert_equal "2014/01/02 07:00:00", d.instance.timef.format(time)
+      timef = time_formatter(d.instance.inject_config)
+      assert_equal "2014/01/02 07:00:00", timef.call(time)
     end
   end
 

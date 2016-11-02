@@ -10,20 +10,6 @@ module Fluent::Plugin
 
     DEFAULT_BUFFER_TYPE = "memory"
 
-    # For fluentd v0.12.16 or earlier
-    class << self
-      unless method_defined?(:desc)
-        def desc(description)
-        end
-      end
-    end
-
-    include Fluent::SetTimeKeyMixin
-    include Fluent::SetTagKeyMixin
-
-    config_set_default :include_time_key, true
-    config_set_default :include_tag_key, true
-
     desc <<-DESC
 Incoming Webhook URI (Required for Incoming Webhook mode).
 See: https://api.slack.com/incoming-webhooks
@@ -123,6 +109,8 @@ DESC
 
     desc "Include messages to the fallback attributes"
     config_param :verbose_fallback,     :bool,   default: false
+
+    config_set_default :time_format, "%H:%M:%S"
 
     config_section :inject, param_name: :inject_config do
       config_set_default :tag_key, "tag"
