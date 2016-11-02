@@ -1,3 +1,4 @@
+require 'uri'
 require 'fluent/plugin/output'
 require_relative 'slack_client'
 
@@ -127,7 +128,6 @@ DESC
 
     def initialize
       super
-      require 'uri'
     end
 
     def configure(conf)
