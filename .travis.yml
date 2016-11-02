@@ -1,14 +1,9 @@
 sudo: false
 rvm:
-  - 2.0.*
   - 2.1.*
   - 2.2.*
-  - 2.3.0
+  - 2.3.1
 gemfile:
   - Gemfile
-matrix:
-  exclude:
-    - rvm: 2.0.*
-      gemfile: Gemfile
 before_install:
   - gem update bundler
