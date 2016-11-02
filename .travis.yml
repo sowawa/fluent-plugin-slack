@@ -6,7 +6,6 @@ rvm:
   - 2.3.0
 gemfile:
   - Gemfile
-  - Gemfile.fluentd.0.12
 matrix:
   exclude:
     - rvm: 2.0.*
