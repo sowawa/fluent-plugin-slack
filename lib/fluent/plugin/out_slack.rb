@@ -133,7 +133,7 @@ DESC
     def configure(conf)
       conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
       conf['localtime'] ||= true unless conf['utc']
-      compat_parameters_convert(conf, :inject)
+      compat_parameters_convert(conf, :inject, :buffer)
 
       super
 
