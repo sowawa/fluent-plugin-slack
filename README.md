@@ -85,6 +85,7 @@ fluent_logger.post('slack', {
 |auto_channels_create|Create channels if not exist. Not available for Incoming Webhook mode (since Incoming Webhook is specific to a channel). A web api `token` for Normal User is required (Bot User can not create channels. See https://api.slack.com/bot-users)|false|
 |https_proxy|https proxy url such as `https://proxy.foo.bar:443`|nil|
 |verbose_fallback|Originally, only `title` is used for the fallback which is the message shown on popup if `title` is given. If this option is set to be `true`, messages are also included to the fallback attribute|false|
+|encoding|The encoding after conversion of the ASCII-8BIT encoded input string. This uses ruby's String#force_encoding. See https://docs.ruby-lang.org/en/trunk/String.html#method-i-force_encoding. You can get supported encoding list by typing `ruby -e 'p Encoding.name_list.sort'`. NOTE: Only works for Incoming Webhook mode and Web API mode.|UTF-8|
 
 `fluent-plugin-slack` uses `SetTimeKeyMixin` and `SetTagKeyMixin`, so you can also use:
 

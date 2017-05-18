@@ -89,6 +89,7 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal 'XX-XX-XX', d.instance.token
     assert_equal '%s', d.instance.message
     assert_equal ['message'], d.instance.message_keys
+    assert_equal Encoding::UTF_8, d.instance.encoding
 
     assert_raise(Fluent::ConfigError) do
       create_driver(CONFIG + %[title %s %s\ntitle_keys foo])
@@ -261,6 +262,13 @@ class SlackOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + %[auto_channels_create true\ntoken XXX-XX-XXX])
     assert_equal true, d.instance.auto_channels_create
     assert_equal({auto_channels_create: true}, d.instance.post_message_opts)
+  end
+
+  def test_encoding_configure
+    # require to specify the encoding found in Encoding.find
+    assert_raise(Fluent::ConfigError) do
+      create_driver(CONFIG + %[encoding UTF-1])
+    end
   end
 
   def test_default_incoming_webhook
