@@ -119,15 +119,6 @@ DESC
     desc "Include messages to the fallback attributes"
     config_param :verbose_fallback,     :bool,   default: false
 
-    desc <<-DESC
-The encoding after conversion of the ASCII-8BIT encoded input string.
-This uses ruby's String#force_encoding.
-See https://docs.ruby-lang.org/en/trunk/String.html#method-i-force_encoding.
-You can get supported encoding list by typing `ruby -e 'p Encoding.name_list.sort'`.
-NOTE: Only works for Incoming Webhook mode and Web API mode.
-DESC
-    config_param :encoding,             :string, default: Encoding::UTF_8
-
     # for test
     attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in, :post_message_opts
 
@@ -139,7 +130,7 @@ DESC
     def configure(conf)
       conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
       conf['localtime'] ||= true unless conf['utc']
-
+ 
       super
 
       @channel = URI.unescape(@channel) # old version compatibility
@@ -152,7 +143,7 @@ DESC
         unless @as_user.nil?
           log.warn "out_slack: `as_user` parameter are not available for Incoming Webhook"
         end
-        @slack = Fluent::SlackClient::IncomingWebhook.new(@webhook_url, nil, @encoding)
+        @slack = Fluent::SlackClient::IncomingWebhook.new(@webhook_url)
       elsif @slackbot_url
         if @slackbot_url.empty?
           raise Fluent::ConfigError.new("`slackbot_url` is an empty string")
@@ -168,7 +159,7 @@ DESC
         if @token.empty?
           raise Fluent::ConfigError.new("`token` is an empty string")
         end
-        @slack = Fluent::SlackClient::WebApi.new(nil, nil, @encoding)
+        @slack = Fluent::SlackClient::WebApi.new
       else
         raise Fluent::ConfigError.new("One of `webhook_url` or `slackbot_url`, or `token` is required")
       end
@@ -222,14 +213,6 @@ DESC
       if @auto_channels_create
         raise Fluent::ConfigError, "`token` parameter is required to use `auto_channels_create`" unless @token
         @post_message_opts = {auto_channels_create: true}
-      end
-
-      if @encoding
-        begin
-          Encoding.find(@encoding)
-        rescue ArgumentError => e
-          raise Fluent::ConfigError, "`encoding` parameter is required to be found in Encoding#find. #{e.message}"
-        end
       end
     end
 

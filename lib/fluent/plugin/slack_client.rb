@@ -9,7 +9,7 @@ module Fluent
     # The base framework of slack client
     class Base
       attr_accessor :log, :debug_dev
-      attr_reader   :endpoint, :https_proxy, :encoding
+      attr_reader   :endpoint, :https_proxy
 
       # @param [String] endpoint
       #
@@ -26,10 +26,9 @@ module Fluent
       #
       #     https://proxy.foo.bar:port
       #
-      def initialize(endpoint = nil, https_proxy = nil, encoding = Encoding::UTF_8)
+      def initialize(endpoint = nil, https_proxy = nil)
         self.endpoint    = endpoint    if endpoint
         self.https_proxy = https_proxy if https_proxy
-        self.encoding    = encoding
         @log = Logger.new('/dev/null')
       end
 
@@ -40,10 +39,6 @@ module Fluent
       def https_proxy=(https_proxy)
         @https_proxy = URI.parse(https_proxy)
         @proxy_class = Net::HTTP.Proxy(@https_proxy.host, @https_proxy.port)
-      end
-
-      def encoding=(encoding)
-        @encoding    = encoding
       end
 
       def proxy_class
@@ -110,7 +105,7 @@ module Fluent
         rescue Encoding::UndefinedConversionError => e
           recursive_transcode(params)
           if (retries -= 1) >= 0 # one time retry
-            log.warn "out_slack: to_json `#{params}` failed. retry after transcode with the encoding parameter(`#{encoding}`). #{e.backtrace[0]} / #{e.message}"
+            log.warn "out_slack: to_json `#{params}` failed. retry after transcode. #{e.backtrace[0]} / #{e.message}"
             retry
           else
             raise e
@@ -125,8 +120,8 @@ module Fluent
         when Array
           params.each {|elm| recursive_transcode(elm)}
         when String
-          params.force_encoding(encoding) if params.encoding == Encoding::ASCII_8BIT
-          params.scrub! if params.respond_to?(:scrub!)
+          params.force_encoding(Encoding::UTF_8) if params.encoding == Encoding::ASCII_8BIT
+          params.scrub!('?') if params.respond_to?(:scrub!)
         else
           params
         end
@@ -136,7 +131,7 @@ module Fluent
     # Slack client for Incoming Webhook
     # https://api.slack.com/incoming-webhooks
     class IncomingWebhook < Base
-      def initialize(endpoint, https_proxy = nil, encoding = Encoding::UTF_8)
+      def initialize(endpoint, https_proxy = nil)
         super
       end
 
@@ -163,7 +158,7 @@ module Fluent
     # Slack client for Slackbot Remote Control
     # https://api.slack.com/slackbot
     class Slackbot < Base
-      def initialize(endpoint, https_proxy = nil, encoding = nil)
+      def initialize(endpoint, https_proxy = nil)
         super
       end
 

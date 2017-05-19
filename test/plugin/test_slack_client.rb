@@ -71,9 +71,6 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
       @slackbot_proxy = Fluent::SlackClient::Slackbot.new(ENV['SLACKBOT_URL'], proxy_url)
       @api_proxy      = Fluent::SlackClient::WebApi.new(nil, proxy_url)
 
-      @incoming_utf16 = Fluent::SlackClient::IncomingWebhook.new(ENV['WEBHOOK_URL'], nil, Encoding::UTF_16)
-      @api_utf16      = Fluent::SlackClient::WebApi.new(nil, nil, Encoding::UTF_16)
-
       @icon_url = 'http://www.google.com/s2/favicons?domain=www.google.de'
     end
 
@@ -107,13 +104,6 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
     def invalid_ascii8bit_encoded_utf8_string
       str = "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB\x81\n"
       str.force_encoding(Encoding::ASCII_8BIT)
-    end
-
-    def invalid_ascii8bit_encoded_utf16_string
-      str = "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB"
-      str.encode!(Encoding::UTF_16, Encoding::UTF_8)
-      str.force_encoding(Encoding::ASCII_8BIT)
-      str.byteslice(0,25) # to make invalid
     end
 
     # Notification via Mention works for all three with plain text payload
@@ -279,7 +269,7 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
       end
     end
 
-    # IncomingWebhook posts "#general インストール�"
+    # IncomingWebhook posts "#general インストール?"
     def test_post_message_ascii8bit_encoded_utf8_text
       [@incoming].each do |slack|
         assert_nothing_raised do
@@ -290,18 +280,7 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
       end
     end
 
-    # IncomingWebhook posts "#general イン�"
-    def test_post_message_ascii8bit_encoded_utf16_text
-      [@incoming_utf16].each do |slack|
-        assert_nothing_raised do
-          slack.post_message(default_payload(slack).merge({
-            text: invalid_ascii8bit_encoded_utf16_string,
-          }))
-        end
-      end
-    end
-
-    # IncomingWebhook and API posts "#general インストール�"
+    # IncomingWebhook and API posts "#general インストール?"
     def test_post_message_ascii8bit_encoded_utf8_attachments
       [@incoming, @api].each do |slack|
         assert_nothing_raised do
@@ -310,21 +289,6 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
               color:    'good',
               fallback: invalid_ascii8bit_encoded_utf8_string,
               text:     invalid_ascii8bit_encoded_utf8_string,
-            })]
-          }))
-        end
-      end
-    end
-
-    # IncomingWebhook and API posts "#general イン�"
-    def test_post_message_ascii8bit_encoded_utf16_attachments
-      [@incoming_utf16, @api_utf16].each do |slack|
-        assert_nothing_raised do
-          slack.post_message(default_payload(slack).merge({
-            attachments: [default_attachment.merge({
-              color:    'good',
-              fallback: invalid_ascii8bit_encoded_utf16_string,
-              text:     invalid_ascii8bit_encoded_utf16_string,
             })]
           }))
         end
