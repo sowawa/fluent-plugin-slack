@@ -96,11 +96,6 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
       "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB\n"
     end
 
-    def valid_utf16_encoded_string
-      str = "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB\n"
-      str.encode!(Encoding::UTF_16, Encoding::UTF_8)
-    end
-
     def invalid_ascii8bit_encoded_utf8_string
       str = "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB\x81\n"
       str.force_encoding(Encoding::ASCII_8BIT)
@@ -253,17 +248,6 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
         assert_nothing_raised do
           slack.post_message(default_payload(slack).merge({
             text: valid_utf8_encoded_string,
-          }))
-        end
-      end
-    end
-
-    # IncomingWebhook posts "#general インストール"
-    def test_post_message_utf16_encoded_text
-      [@incoming].each do |slack|
-        assert_nothing_raised do
-          slack.post_message(default_payload(slack).merge({
-            text: valid_utf16_encoded_string,
           }))
         end
       end
