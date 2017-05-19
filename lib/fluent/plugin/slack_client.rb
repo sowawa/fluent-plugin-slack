@@ -98,14 +98,14 @@ module Fluent
         end
       end
 
-      def to_json_with_transcode (params)
+      def to_json_with_scrub! (params)
         retries = 1
         begin
           params.to_json
         rescue Encoding::UndefinedConversionError => e
-          recursive_transcode(params)
+          recursive_scrub!(params)
           if (retries -= 1) >= 0 # one time retry
-            log.warn "out_slack: to_json `#{params}` failed. retry after transcode. #{e.backtrace[0]} / #{e.message}"
+            log.warn "out_slack: to_json `#{params}` failed. retry after scrub!. #{e.backtrace[0]} / #{e.message}"
             retry
           else
             raise e
@@ -113,12 +113,12 @@ module Fluent
         end
       end
 
-      def recursive_transcode(params)
+      def recursive_scrub!(params)
         case params
         when Hash
-          params.each {|k, v| recursive_transcode(v)}
+          params.each {|k, v| recursive_scrub!(v)}
         when Array
-          params.each {|elm| recursive_transcode(elm)}
+          params.each {|elm| recursive_scrub!(elm)}
         when String
           params.force_encoding(Encoding::UTF_8) if params.encoding == Encoding::ASCII_8BIT
           params.scrub!('?') if params.respond_to?(:scrub!)
@@ -144,7 +144,7 @@ module Fluent
 
       def encode_body(params = {})
         # https://api.slack.com/docs/formatting
-        to_json_with_transcode(params).gsub(/&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;')
+        to_json_with_scrub!(params).gsub(/&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;')
       end
 
       def response_check(res, params)
@@ -266,7 +266,7 @@ module Fluent
       def encode_body(params = {})
         body = params.dup
         if params[:attachments]
-          body[:attachments] = to_json_with_transcode(params[:attachments])
+          body[:attachments] = to_json_with_scrub!(params[:attachments])
         end
         URI.encode_www_form(body)
       end
