@@ -105,7 +105,7 @@ module Fluent
         rescue Encoding::UndefinedConversionError => e
           recursive_scrub!(params)
           if (retries -= 1) >= 0 # one time retry
-            log.warn "out_slack: to_json `#{params}` failed. retry after scrub!. #{e.backtrace[0]} / #{e.message}"
+            log.warn "out_slack: to_json `#{params}` failed. retry after scrub!. #{e.message}"
             retry
           else
             raise e
