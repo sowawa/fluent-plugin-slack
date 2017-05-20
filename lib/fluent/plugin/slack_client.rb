@@ -98,7 +98,7 @@ module Fluent
         end
       end
 
-      def to_json_with_scrub! (params)
+      def to_json_with_scrub!(params)
         retries = 1
         begin
           params.to_json
