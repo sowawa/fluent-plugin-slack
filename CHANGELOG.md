@@ -1,3 +1,9 @@
+## 0.6.5 (2017/05/20)
+
+Enhancements:
+
+* Avoid Encoding::UndefinedConversionError from ASCII-8BIT to UTF-8 on to_json by doing String#scrub! (thanks @yoheimuta)
+
 ## 0.6.4 (2016/07/07)
 
 Enhancements:
