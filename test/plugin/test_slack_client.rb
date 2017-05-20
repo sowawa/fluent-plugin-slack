@@ -92,6 +92,15 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
       }
     end
 
+    def valid_utf8_encoded_string
+      "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB\n"
+    end
+
+    def invalid_ascii8bit_encoded_utf8_string
+      str = "#general \xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xB9\xE3\x83\x88\xE3\x83\xBC\xE3\x83\xAB\x81\n"
+      str.force_encoding(Encoding::ASCII_8BIT)
+    end
+
     # Notification via Mention works for all three with plain text payload
     def test_post_message_plain_payload_mention
       [@incoming, @slackbot, @api].each do |slack|
@@ -230,6 +239,43 @@ if ENV['WEBHOOK_URL'] and ENV['SLACKBOT_URL'] and ENV['SLACK_API_TOKEN']
             auto_channels_create: true,
           }
         )
+      end
+    end
+
+    # IncomingWebhook posts "#general インストール"
+    def test_post_message_utf8_encoded_text
+      [@incoming].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(default_payload(slack).merge({
+            text: valid_utf8_encoded_string,
+          }))
+        end
+      end
+    end
+
+    # IncomingWebhook posts "#general インストール?"
+    def test_post_message_ascii8bit_encoded_utf8_text
+      [@incoming].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(default_payload(slack).merge({
+            text: invalid_ascii8bit_encoded_utf8_string,
+          }))
+        end
+      end
+    end
+
+    # IncomingWebhook and API posts "#general インストール?"
+    def test_post_message_ascii8bit_encoded_utf8_attachments
+      [@incoming, @api].each do |slack|
+        assert_nothing_raised do
+          slack.post_message(default_payload(slack).merge({
+            attachments: [default_attachment.merge({
+              color:    'good',
+              fallback: invalid_ascii8bit_encoded_utf8_string,
+              text:     invalid_ascii8bit_encoded_utf8_string,
+            })]
+          }))
+        end
       end
     end
   end
