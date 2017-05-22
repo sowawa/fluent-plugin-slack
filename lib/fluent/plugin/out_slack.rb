@@ -135,7 +135,9 @@ DESC
 
       if @channel
         @channel = URI.unescape(@channel) # old version compatibility
-        @channel = '#' + @channel unless @channel.start_with?('#')
+        if !@channel.start_with?('#') and !@channel.start_with?('@')
+          @channel = '#' + @channel # add leading # for old version compatibility
+        end
       end
 
       if @webhook_url

@@ -90,6 +90,10 @@ class SlackOutputTest < Test::Unit::TestCase
     assert_equal '%s', d.instance.message
     assert_equal ['message'], d.instance.message_keys
 
+    # Allow DM
+    d = create_driver(CONFIG + %[channel @test])
+    assert_equal '@test', d.instance.channel
+
     assert_raise(Fluent::ConfigError) do
       create_driver(CONFIG + %[title %s %s\ntitle_keys foo])
     end
