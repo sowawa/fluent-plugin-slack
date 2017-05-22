@@ -1,3 +1,9 @@
+## 0.6.7 (2017/05/23)
+
+Enhancements:
+
+* Allow channel @username (DM)
+
 ## 0.6.6 (2017/05/23)
 
 Enhancements:
