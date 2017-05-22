@@ -1,3 +1,9 @@
+## 0.6.6 (2017/05/23)
+
+Enhancements:
+
+* Make channel config optional on webhook because webhook has its defaul channel setting (thanks to @hirakiuc)
+
 ## 0.6.5 (2017/05/20)
 
 Enhancements:
