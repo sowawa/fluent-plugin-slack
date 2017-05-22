@@ -114,14 +114,29 @@ class SlackOutputTest < Test::Unit::TestCase
       create_driver(%[channel foo\nwebhook_url])
     end
 
-    # webhook_url is an empty string
+    # webhook without channel (it works because webhook has a default channel)
+    assert_nothing_raised do
+      create_driver(%[webhook_url https://example.com/path/to/webhook])
+    end
+
+    # slackbot_url is an empty string
     assert_raise(Fluent::ConfigError) do
       create_driver(%[channel foo\nslackbot_url])
+    end
+
+    # slackbot without channel
+    assert_raise(Fluent::ConfigError) do
+      create_driver(%[slackbot_url https://example.com/path/to/slackbot])
     end
 
     # token is an empty string
     assert_raise(Fluent::ConfigError) do
       create_driver(%[channel foo\ntoken])
+    end
+
+    # slack webapi token without channel
+    assert_raise(Fluent::ConfigError) do
+      create_driver(%[token some_token])
     end
   end
 

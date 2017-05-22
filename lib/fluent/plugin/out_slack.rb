@@ -86,7 +86,7 @@ DESC
     config_param :https_proxy,          :string, default: nil
 
     desc "channel to send messages (without first '#')."
-    config_param :channel,              :string
+    config_param :channel,              :string, default: nil
     desc <<-DESC
 Keys used to format channel.
 %s will be replaced with value specified by channel_keys if this option is used.
@@ -130,11 +130,13 @@ DESC
     def configure(conf)
       conf['time_format'] ||= '%H:%M:%S' # old version compatiblity
       conf['localtime'] ||= true unless conf['utc']
- 
+
       super
 
-      @channel = URI.unescape(@channel) # old version compatibility
-      @channel = '#' + @channel unless @channel.start_with?('#')
+      if @channel
+        @channel = URI.unescape(@channel) # old version compatibility
+        @channel = '#' + @channel unless @channel.start_with?('#')
+      end
 
       if @webhook_url
         if @webhook_url.empty?
@@ -148,6 +150,10 @@ DESC
         if @slackbot_url.empty?
           raise Fluent::ConfigError.new("`slackbot_url` is an empty string")
         end
+        if @channel.nil?
+          raise Fluent::ConfigError.new("`channel` parameter required for Slackbot Remote Control")
+        end
+
         if @username or @color or @icon_emoji or @icon_url
           log.warn "out_slack: `username`, `color`, `icon_emoji`, `icon_url` parameters are not available for Slackbot Remote Control"
         end
@@ -159,6 +165,10 @@ DESC
         if @token.empty?
           raise Fluent::ConfigError.new("`token` is an empty string")
         end
+        if @channel.nil?
+          raise Fluent::ConfigError.new("`channel` parameter required for Slack WebApi")
+        end
+
         @slack = Fluent::SlackClient::WebApi.new
       else
         raise Fluent::ConfigError.new("One of `webhook_url` or `slackbot_url`, or `token` is required")
@@ -184,7 +194,7 @@ DESC
           raise Fluent::ConfigError, "string specifier '%s' for `title` and `title_keys` specification mismatch"
         end
       end
-      if @channel_keys
+      if @channel && @channel_keys
         begin
           @channel % (['1'] * @channel_keys.length)
         rescue ArgumentError
@@ -288,13 +298,14 @@ DESC
                           fields.values.map(&:title).join(' ')
                         end
 
-        {
-          channel: channel,
+        msg = {
           attachments: [{
             :fallback => fallback_text, # fallback is the message shown on popup
             :fields   => fields.values.map(&:to_h)
           }.merge(common_attachment)],
-        }.merge(common_payload)
+        }
+        msg.merge!(channel: channel) if channel
+        msg.merge!(common_payload)
       end
     end
 
@@ -306,13 +317,14 @@ DESC
         messages[channel] << "#{build_message(record)}\n"
       end
       messages.map do |channel, text|
-        {
-          channel: channel,
+        msg = {
           attachments: [{
             :fallback => text,
             :text     => text,
           }.merge(common_attachment)],
-        }.merge(common_payload)
+        }
+        msg.merge!(channel: channel) if channel
+        msg.merge!(common_payload)
       end
     end
 
@@ -324,10 +336,9 @@ DESC
         messages[channel] << "#{build_message(record)}\n"
       end
       messages.map do |channel, text|
-        {
-          channel: channel,
-          text:    text,
-        }.merge(common_payload)
+        msg = {text: text}
+        msg.merge!(channel: channel) if channel
+        msg.merge!(common_payload)
       end
     end
 
@@ -344,6 +355,7 @@ DESC
     end
 
     def build_channel(record)
+      return nil if @channel.nil?
       return @channel unless @channel_keys
 
       values = fetch_keys(record, @channel_keys)
