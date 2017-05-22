@@ -16,8 +16,6 @@ module Fluent
     include SetTimeKeyMixin
     include SetTagKeyMixin
 
-    CHANNEL_NONE = :channel_none
-
     config_set_default :include_time_key, true
     config_set_default :include_tag_key, true
 
@@ -305,8 +303,9 @@ DESC
             :fallback => fallback_text, # fallback is the message shown on popup
             :fields   => fields.values.map(&:to_h)
           }.merge(common_attachment)],
-        }.merge(common_payload)
-        merge_channel(msg, channel)
+        }
+        msg.merge!(channel: channel) if channel
+        msg.merge!(common_payload)
       end
     end
 
@@ -323,8 +322,9 @@ DESC
             :fallback => text,
             :text     => text,
           }.merge(common_attachment)],
-        }.merge(common_payload)
-        merge_channel(msg, channel)
+        }
+        msg.merge!(channel: channel) if channel
+        msg.merge!(common_payload)
       end
     end
 
@@ -336,15 +336,10 @@ DESC
         messages[channel] << "#{build_message(record)}\n"
       end
       messages.map do |channel, text|
-        msg = { text: text }.merge(common_payload)
-        merge_channel(msg, channel)
+        msg = {text: text}
+        msg.merge!(channel: channel) if channel
+        msg.merge!(common_payload)
       end
-    end
-
-    def merge_channel(msg, channel)
-      return msg if channel == CHANNEL_NONE
-      msg[:channel] = channel
-      msg
     end
 
     def build_message(record)
@@ -360,7 +355,7 @@ DESC
     end
 
     def build_channel(record)
-      return CHANNEL_NONE if @channel.nil?
+      return nil if @channel.nil?
       return @channel unless @channel_keys
 
       values = fetch_keys(record, @channel_keys)
