@@ -136,7 +136,7 @@ DESC
       if @channel
         @channel = URI.unescape(@channel) # old version compatibility
         if !@channel.start_with?('#') and !@channel.start_with?('@')
-          @channel = '#' + @channel # add leading # for old version compatibility
+          @channel = '#' + @channel # Add # since `#` is handled as a comment in fluentd conf
         end
       end
 
