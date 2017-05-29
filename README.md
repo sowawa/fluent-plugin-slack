@@ -90,7 +90,6 @@ fluent_logger.post('slack', {
 
 |parameter|description|default|
 |---|---|---|
-|timezone|timezone such as `Asia/Tokyo`||
 |localtime|use localtime as timezone|true|
 |utc|use utc as timezone||
 |time_key|key name for time used in xxx_keys|time|
