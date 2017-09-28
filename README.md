@@ -42,7 +42,7 @@ fluent_logger.post('slack', {
 })
 ```
 
-# Usage (Web API)
+# Usage (Web API a.k.a. Bots)
 
 ```apache
 <match slack>
