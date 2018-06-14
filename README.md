@@ -48,7 +48,7 @@ fluent_logger.post('slack', {
 <match slack>
   @type slack
   token xoxb-XXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX
-  channel general
+  channel C061EG9SL
   username sowasowa
   icon_emoji :ghost:
   flush_interval 60s
@@ -76,7 +76,7 @@ fluent_logger.post('slack', {
 |mrkdwn|enable formatting. see https://api.slack.com/docs/formatting|true|
 |link_names|find and link channel names and usernames. NOTE: This parameter must be `true` to receive Desktop Notification via Mentions in cases of Incoming Webhook and Slack Web API|true|
 |parse|change how messages are treated. `none` or `full` can be specified. See `Parsing mode` section of https://api.slack.com/docs/formatting|nil|
-|channel|channel to send messages (without first '#')||
+|channel|Channel name or id to send messages (without first '#'). Channel ID is recommended because it is unchanged even if a channel is renamed||
 |channel_keys|keys used to format channel. %s will be replaced with value specified by channel_keys if this option is used|nil|
 |title|title format. %s will be replaced with value specified by title_keys. title is created from the first appeared record on each tag. NOTE: This parameter must **not** be specified to receive Desktop Notification via Mentions in cases of Incoming Webhook and Slack Web API|nil|
 |title_keys|keys used to format the title|nil|
