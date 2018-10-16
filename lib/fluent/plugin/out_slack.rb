@@ -367,12 +367,22 @@ DESC
     def fetch_keys(record, keys)
       Array(keys).map do |key|
         begin
-          record.fetch(key).to_s
+          fetch_key(record, key).to_s
         rescue KeyError
           log.warn "out_slack: the specified key '#{key}' not found in record. [#{record}]"
           ''
         end
       end
     end
+
+    def fetch_key(record, key)
+      if key.include? "."
+        match = key.match(/^([a-zA-Z0-9-_]*).([a-zA-Z0-9-_.]*)/)
+        fetch_key(record.fetch(match[1]), match[2])
+      else
+        record.fetch(key)
+      end
+    end
+
   end
 end
