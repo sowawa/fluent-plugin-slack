@@ -45,7 +45,7 @@ module Fluent
         @proxy_class ||= Net::HTTP
       end
 
-      def post(endpoint, params)
+      def post(endpoint, params, opts = {})
         http = proxy_class.new(endpoint.host, endpoint.port)
         http.use_ssl = (endpoint.scheme == 'https')
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -55,7 +55,7 @@ module Fluent
         req['Host'] = endpoint.host
         req['Accept'] = 'application/json; charset=utf-8'
         req['User-Agent'] = 'fluent-plugin-slack'
-        req.body = encode_body(params)
+        req.body = encode_body(params, opts)
 
         res = http.request(req)
         response_check(res, params)
@@ -63,7 +63,7 @@ module Fluent
 
       private
 
-      def encode_body(params)
+      def encode_body(params, opts)
         raise NotImplementedError
       end
 
@@ -142,9 +142,13 @@ module Fluent
 
       private
 
-      def encode_body(params = {})
-        # https://api.slack.com/docs/formatting
-        to_json_with_scrub!(params).gsub(/&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;')
+      def encode_body(params = {}, opts = {})
+        if opts[:escape_symbols]
+          # https://api.slack.com/docs/formatting
+          return to_json_with_scrub!(params).gsub(/&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;')
+        end
+
+        to_json_with_scrub!(params)
       end
 
       def response_check(res, params)
@@ -180,7 +184,7 @@ module Fluent
         endpoint.dup.tap {|e| e.query += "&channel=#{URI.encode(params[:channel])}" }
       end
 
-      def encode_body(params = {})
+      def encode_body(params = {}, opts = {})
         return params[:text]if params[:text]
         unless params[:attachments]
           raise ArgumentError, 'params[:text] or params[:attachments] is required'
@@ -244,7 +248,7 @@ module Fluent
       def post_message(params = {}, opts = {})
         with_channels_create(params, opts) do
           log.info { "out_slack: post_message #{filter_params(params)}" }
-          post(post_message_endpoint, params)
+          post(post_message_endpoint, params, opts)
         end
       end
 
@@ -263,7 +267,7 @@ module Fluent
 
       private
 
-      def encode_body(params = {})
+      def encode_body(params = {}, opts = {})
         body = params.dup
         if params[:attachments]
           body[:attachments] = to_json_with_scrub!(params[:attachments])

@@ -119,6 +119,9 @@ DESC
     desc "Include messages to the fallback attributes"
     config_param :verbose_fallback,     :bool,   default: false
 
+    desc "Escape special symbols in message"
+    config_param :escape_symbols,       :bool,   default: true
+
     # for test
     attr_reader :slack, :time_format, :localtime, :timef, :mrkdwn_in, :post_message_opts
 
