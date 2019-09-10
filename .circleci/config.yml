@@ -1,0 +1,51 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/ruby:2.4.1-node-browsers
+    steps:
+      - checkout
+      - run:
+          name: install dependencies
+          command: |
+            bundle install --jobs=4 --retry=3 --path vendor/bundle && \
+            gem install rspec
+      - run:
+          name: run tests
+          command: rake test
+      - persist_to_workspace:
+          root: .
+          paths:
+            - '*'
+  release:
+    docker:
+      - image: circleci/ruby:2.4.1-node-browsers
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: build gem
+          command: gem build fluent-plugin-slack.gemspec
+      - run:
+          name: configure artifactory
+          command: |
+            gem source -a https://${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD}@arti.tw.ee/artifactory/api/gems/gem-internal/ && \
+            export RUBYGEMS_HOST=https://arti.tw.ee/artifactory/api/gems/gem-internal && \
+            curl -u${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD} https://arti.tw.ee/artifactory/api/gems/gem-internal/api/v1/api_key.yaml > ~/.gem/credentials && \
+            chmod 600 ~/.gem/credentials
+      - run:
+          name: push package
+          command: gem push fluent-plugin-slack-$(cat VERSION).gem --host https://arti.tw.ee/artifactory/api/gems/gem-internal
+
+workflows:
+  version: 2
+  build_and_release:
+    jobs:
+      - build
+      - release:
+          context: artifactory-deploy
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^\d+\.\d+\.\d+$/
