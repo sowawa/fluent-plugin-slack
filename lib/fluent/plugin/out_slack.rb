@@ -135,9 +135,6 @@ DESC
 
       if @channel
         @channel = URI.unescape(@channel) # old version compatibility
-        if !@channel.start_with?('#') and !@channel.start_with?('@')
-          @channel = '#' + @channel # Add # since `#` is handled as a comment in fluentd conf
-        end
       end
 
       if @webhook_url
