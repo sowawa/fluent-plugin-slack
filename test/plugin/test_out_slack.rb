@@ -81,7 +81,7 @@ class SlackOutputTest < Test::Unit::TestCase
       message      %s
       message_keys message
     ])
-    assert_equal '#channel', d.instance.channel
+    assert_equal 'channel', d.instance.channel
     assert_equal '%Y/%m/%d %H:%M:%S', d.instance.time_format
     assert_equal 'username', d.instance.username
     assert_equal 'bad', d.instance.color
